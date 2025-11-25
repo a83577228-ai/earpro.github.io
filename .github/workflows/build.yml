@@ -1,0 +1,47 @@
+name: Build iOS IPA for AltStore
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Web App
+        run: npm run build
+
+      - name: Setup Capacitor
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Build Unsigned IPA
+        # 使用 xcodebuild 生成未签名的归档，因为 AltStore 会在安装时重新签名
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath App.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          
+          # 将 .app 包装成 .ipa 结构
+          mkdir Payload
+          cp -r App.xcarchive/Products/Applications/App.app Payload/
+          zip -r EarPro.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: EarPro-IPA
+          path: ios/App/EarPro.ipa
