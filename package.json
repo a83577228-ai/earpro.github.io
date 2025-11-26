@@ -6,7 +6,7 @@
   "homepage": ".",
   "scripts": {
     "dev": "vite",
-    "build": "mkdir -p www && cp index.html www/"，  # 生成www目录并复制入口文件
+    "build": "mkdir -p www && cp index.html www/"， 
     "preview": "vite preview",
     "cap:sync": "cap sync",
     "cap:build": "vite build && cap sync"
@@ -31,3 +31,4 @@
   }
 
 }
+
