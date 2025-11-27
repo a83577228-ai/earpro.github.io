@@ -17,7 +17,12 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
+          
+       - name: Install project dependencies
+        run: |
+          npm install
+          npm install lucide-react@latest
+          
       - name: Install Dependencies
         run: npm install
 
