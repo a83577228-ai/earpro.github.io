@@ -6,7 +6,7 @@
   "homepage": ".",
   "scripts": {
     "dev": "vite",
-    "build": "mkdir -p dist && cp index.html dist/",
+    "build": "vite build && cap sync",
     "preview": "vite preview",
     "cap:sync": "cap sync",
     "cap:build": "vite build && cap sync"
@@ -31,6 +31,7 @@
   }
 
 }
+
 
 
 
