@@ -3,8 +3,8 @@ import {
   Menu, Play, Settings, RotateCcw, Clock, 
   ChevronLeft, ChevronRight, Check, X, Trophy, Activity, 
   AlertCircle, Music, BarChart3, Pause,
-  Loader2, Piano, RefreshCw, Sliders, History, BookOpen, Layout, ArrowRight,
-  Guitar, Plus, Folder, Globe, HelpCircle, Shield
+  Loader2, piano, RefreshCw, Sliders, History, BookOpen, Layout, ArrowRight,
+  guitar, Plus, Folder, Globe, HelpCircle, Shield
 } from 'lucide-react';
 
 // --- 1. 核心常量数据 (Constants) ---
@@ -1159,4 +1159,5 @@ export default function App() {
        <RightPanel isOpen={isRightPanelOpen} onClose={() => setIsRightPanelOpen(false)} config={config} setConfig={setConfig} />
     </div>
   );
+
 }
