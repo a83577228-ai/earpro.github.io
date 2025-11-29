@@ -56,3 +56,45 @@ body {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
+
+/* iPhone 屏幕适配优化 */
+.max-w-md {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* 确保容器高度适配动态视口 */
+.h-screen {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* 改善按钮点击反馈 */
+button {
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+/* 安全区域适配增强 */
+@supports(padding: max(0px)) {
+  .safe-area-inset {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* 改善滚动体验 */
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* 防止缩放 */
+@media screen and (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
