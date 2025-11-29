@@ -778,29 +778,24 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
       <div className="flex flex-col h-screen w-full bg-black overflow-hidden">
          
          {/* --- AREA 1: TOP (Header & Info) - Fixed --- */}
-         <div className="flex-none flex justify-between items-center px-6 pt-14 pb-4 z-30 bg-black">
+         <div className="flex-none flex justify-between items-center px-4 pt-4 pb-4 z-30 bg-black safe-area-top">
             {/* Left: Back Button */}
-            <div className="w-20 flex justify-start">
-                <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white active:bg-zinc-800 transition-colors">
+            <div className="w-16 flex justify-start">
+                <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white active:bg-zinc-800 transition-colors mobile-optimized-btn">
                     <ChevronLeft size={20} />
                 </button>
             </div>
 
             {/* Center: Feedback & Timer */}
-            <div className="flex-1 flex justify-center items-center gap-3">
-                {/* Feedback (Left of time) */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                {/* Feedback */}
                 {currentAnswer ? (
-                   <div className={`flex items-center gap-1.5 animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-                       <span className="text-xl font-bold">
-                           {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
-                       </span>
-                       {/* Vertical line */}
-                       <div className="w-px h-5 bg-zinc-800 mx-2"></div>
+                   <div className={`text-sm font-bold animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'} mobile-text`}>
+                       {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
                    </div>
                 ) : (
-                   <div className="flex items-center gap-2 text-zinc-400 text-xl font-bold animate-in fade-in">
-                      <span>仔细听</span>
-                      <div className="w-px h-5 bg-zinc-800 mx-2"></div>
+                   <div className="text-sm text-zinc-400 font-bold animate-in fade-in mobile-text">
+                      仔细听
                    </div>
                 )}
                 
@@ -809,9 +804,9 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
             </div>
 
             {/* Right: Progress (Fixed Position) */}
-            <div className="w-20 flex justify-end items-center">
-                <span className="text-lg font-mono font-bold text-white leading-none">
-                    {currentIndex + 1}<span className="text-zinc-600 text-sm">/{queue.length}</span>
+            <div className="w-16 flex justify-end items-center">
+                <span className="text-sm font-mono font-bold text-white leading-none mobile-text">
+                    {currentIndex + 1}<span className="text-zinc-600 text-xs">/{queue.length}</span>
                 </span>
             </div>
          </div>
@@ -831,14 +826,14 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
          </div>
 
          {/* --- AREA 3: BOTTOM (Controls) - Fixed Panel --- */}
-         <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-8 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+         <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-3 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] safe-area-bottom">
             
             {/* Control Row */}
             <div className="flex gap-2 mb-3">
                <button 
                   onClick={playCurrentQuestion}
                   disabled={gameState === 'PLAYING'}
-                  className={`h-10 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-xs
+                  className={`h-12 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-sm mobile-optimized-btn
                      ${currentAnswer 
                         ? 'flex-1 bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700' 
                         : 'w-full bg-white text-black shadow-sm hover:bg-zinc-100'}
@@ -855,7 +850,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
                {currentAnswer && (
                    <button 
                        onClick={nextQuestion}
-                       className="flex-[2] h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4"
+                       className="flex-[2] h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 mobile-optimized-btn"
                    >
                        Next <ChevronRight size={18} />
                    </button>
@@ -869,7 +864,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
                     const isCorrect = currentAnswer?.correctId === int.id;
                     const showResult = !!currentAnswer;
                     
-                    let btnClass = "border rounded-xl font-bold text-xs transition-all duration-200 relative overflow-hidden h-12";
+                    let btnClass = "border rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden h-14 mobile-optimized-btn";
                     
                     if (showResult) {
                         if (isCorrect) {
@@ -1164,3 +1159,4 @@ export default function App() {
     </div>
   );
 }
+
