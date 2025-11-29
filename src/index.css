@@ -7,8 +7,6 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
 }
 
@@ -18,16 +16,12 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: black;
 }
 
 body {
   background-color: black;
   color: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  position: relative;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
 }
 
 /* 安全区域支持 */
@@ -47,29 +41,7 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* 安全区域适配增强 */
-@supports(padding: max(0px)) {
-  .safe-area-inset {
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
-    padding-top: max(1rem, env(safe-area-inset-top));
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  }
-}
-
-/* 安全区域底部覆盖 - 修复底部白色区域问题 */
-.safe-area-bottom-overlay {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-bottom, 0px);
-  background-color: black;
-  z-index: 9999;
-  pointer-events: none;
-}
-
-/* 自定义滚动条隐藏和滚动体验 */
+/* 自定义滚动条隐藏 */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -77,11 +49,6 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-.custom-scrollbar {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
 }
 
 /* 防止 iOS 弹跳 */
@@ -102,35 +69,60 @@ body {
   height: 100dvh;
 }
 
-/* 按钮和触摸优化 */
+/* 改善按钮点击反馈 */
 button {
   -webkit-tap-highlight-color: transparent;
   outline: none;
-  min-height: 44px; /* 苹果推荐的最小触摸目标尺寸 */
 }
 
-/* 移动端特定优化 */
-@media (max-width: 768px) {
-  .mobile-optimized-btn {
-    min-height: 44px;
-    font-size: 16px; /* 防止iOS缩放 */
-  }
-  
-  .mobile-text {
-    font-size: 14px;
-    line-height: 1.4;
+/* 安全区域适配增强 */
+@supports(padding: max(0px)) {
+  .safe-area-inset {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
 
-@media (max-width: 480px) {
-  .mobile-optimized-btn {
-    min-height: 48px; /* 在更小的屏幕上增加触摸目标 */
+/* 改善滚动体验 */
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* 防止缩放 */
+@media screen and (max-width: 768px) {
+  body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 }
 
-/* 性能优化 */
-.hardware-accelerated {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000;
+/* 安全区域底部覆盖 - 修复底部白色区域问题 */
+.safe-area-bottom-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background-color: black;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* 确保根容器正确处理安全区域 */
+#root {
+  position: relative;
+  min-height: 100%;
+}
+
+/* 修复 Capacitor WebView 中的安全区域问题 */
+body {
+  position: relative;
+}
+
+/* 强制黑色背景延伸到整个视口 */
+html {
+  background-color: black;
 }
