@@ -1099,8 +1099,7 @@ export default function App() {
 {/* 添加安全区域覆盖 */}
   <div className="fixed bottom-0 left-0 right-0 h-[env(safe-area-inset-bottom)] bg-black z-50"></div>
 </div>
-<div className="fixed bottom-0 left-0 right-0 h-[env(safe-area-inset-bottom)] bg-black z-50"></div>
-</div>
+    
        {view === 'HOME' && <HomeScreen mistakes={mistakes} slowResponses={slowResponses} history={history} startSession={startSession} setView={setView} setIsLeftPanelOpen={setIsLeftPanelOpen} setIsRightPanelOpen={setIsRightPanelOpen} />}
        {view === 'SETTINGS' && <SettingsScreen config={config} setConfig={setConfig} setView={setView} startSession={startSession} />}
        {view === 'GAME_INIT' && (
@@ -1168,5 +1167,6 @@ export default function App() {
   );
 
 }
+
 
 
