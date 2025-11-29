@@ -98,3 +98,31 @@ button {
     text-size-adjust: 100%;
   }
 }
+
+/* 安全区域底部覆盖 - 修复底部白色区域问题 */
+.safe-area-bottom-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background-color: black;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* 确保根容器正确处理安全区域 */
+#root {
+  position: relative;
+  min-height: 100%;
+}
+
+/* 修复 Capacitor WebView 中的安全区域问题 */
+body {
+  position: relative;
+}
+
+/* 强制黑色背景延伸到整个视口 */
+html {
+  background-color: black;
+}
