@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; 
 import { 
   Menu, Play, Settings, RotateCcw, Clock, 
   ChevronLeft, ChevronRight, Check, X, Trophy, Activity, 
@@ -519,8 +519,8 @@ const RightPanel = ({ isOpen, onClose, config, setConfig }) => {
                                     className={`py-2.5 rounded-lg border text-xs font-bold transition-all
                                       ${isSelected 
                                         ? 'bg-white text-black border-white shadow-lg' 
-                                        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-800'
-                                      }`}
+                                        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-800'}
+                                      `}
                                  >
                                     {opt.label}
                                  </button>
@@ -1096,13 +1096,11 @@ export default function App() {
 
   return (
     <div className="w-full h-screen bg-black overflow-hidden font-sans selection:bg-blue-500 selection:text-white max-w-md mx-auto relative shadow-2xl safe-area-inset">
-{/* 添加安全区域覆盖 */}
-  <div className="fixed bottom-0 left-0 right-0 h-[env(safe-area-inset-bottom)] bg-black z-50"></div>
-</div>
-    
-       {view === 'HOME' && <HomeScreen mistakes={mistakes} slowResponses={slowResponses} history={history} startSession={startSession} setView={setView} setIsLeftPanelOpen={setIsLeftPanelOpen} setIsRightPanelOpen={setIsRightPanelOpen} />}
-       {view === 'SETTINGS' && <SettingsScreen config={config} setConfig={setConfig} setView={setView} startSession={startSession} />}
-       {view === 'GAME_INIT' && (
+      {/* 安全区域覆盖层 */}
+      <div className="safe-area-bottom-overlay"></div>
+      
+      {view === 'HOME' && <HomeScreen mistakes={mistakes} slowResponses={slowResponses} history={history} startSession={startSession} setView={setView} setIsLeftPanelOpen={setIsLeftPanelOpen} setIsRightPanelOpen={setIsRightPanelOpen} />}
+      {view === 'GAME_INIT' && (
           <div className="h-full flex items-center justify-center text-white flex-col gap-4">
             <Loader2 className="animate-spin text-blue-500" size={48} />
             <p className="text-sm text-zinc-400">Loading Piano Samples...</p>
@@ -1165,8 +1163,4 @@ export default function App() {
        <RightPanel isOpen={isRightPanelOpen} onClose={() => setIsRightPanelOpen(false)} config={config} setConfig={setConfig} />
     </div>
   );
-
 }
-
-
-
