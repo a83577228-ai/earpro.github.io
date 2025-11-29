@@ -665,7 +665,36 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
     </div>
 );
 
+// 在 GameScreen 组件开始处添加
 const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, firstPlayDone, currentAnswer, config, playCurrentQuestion, handleAnswer, nextQuestion, setView, goBack }) => {
+  // 保护性检查
+  if (!queue || queue.length === 0 || currentIndex >= queue.length) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-black items-center justify-center">
+        <div className="text-white text-lg">加载中...</div>
+        <button onClick={goBack} className="mt-4 px-4 py-2 bg-white text-black rounded">
+          返回首页
+        </button>
+      </div>
+    );
+  }
+  
+  const q = queue[currentIndex];
+  
+  // 确保选项存在且有足够数量
+  if (!q.options || q.options.length < 4) {
+    console.error('选项数量不足:', q.options ? q.options.length : 'undefined');
+    return (
+      <div className="flex flex-col h-screen w-full bg-black items-center justify-center">
+        <div className="text-white text-lg">题目数据错误</div>
+        <button onClick={goBack} className="mt-4 px-4 py-2 bg-white text-black rounded">
+          返回首页
+        </button>
+      </div>
+    );
+  }
+  
+  // 其余组件代码...
     const q = queue[currentIndex];
     const scrollRef = useRef(null);
     
@@ -934,86 +963,105 @@ export default function App() {
   const playbackTimeoutRef = useRef(null);
 
   const generateQuestionOptions = (correctInterval, pool) => {
-      let effectivePool = pool;
-      if (!pool.find(i => i.id === correctInterval.id)) {
-          effectivePool = [...pool, correctInterval];
-      }
-      
-      if (effectivePool.length <= 4) {
-          return effectivePool.sort((a, b) => a.semitones - b.semitones);
-      }
-      
-      const distractors = effectivePool.filter(i => i.id !== correctInterval.id)
-                              .sort(() => 0.5 - Math.random())
-                              .slice(0, 3);
-      
-      const options = [correctInterval, ...distractors];
-      return options.sort((a, b) => a.semitones - b.semitones);
+  let effectivePool = pool;
+  if (!pool.find(i => i.id === correctInterval.id)) {
+    effectivePool = [...pool, correctInterval];
+  }
+  
+  // 使用更可靠的随机数生成
+  const getRandomItems = (array, count) => {
+    const shuffled = [...array].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
   };
+  
+  if (effectivePool.length <= 4) {
+    return effectivePool.sort((a, b) => a.semitones - b.semitones);
+  }
+  
+  const distractors = getRandomItems(
+    effectivePool.filter(i => i.id !== correctInterval.id), 
+    3
+  );
+  
+  const options = [correctInterval, ...distractors];
+  return options.sort((a, b) => a.semitones - b.semitones);
+};
 
   const startSession = async (mode = 'NEW', customQueue = null) => {
-    let newQueue = [];
-    
-    await AudioEngine.init();
-    if (config.instrument && config.instrument !== 'piano') {
-        await AudioEngine.loadSamples(config.instrument);
+  let newQueue = [];
+  
+  await AudioEngine.init();
+  if (config.instrument && config.instrument !== 'piano') {
+    await AudioEngine.loadSamples(config.instrument);
+  }
+  
+  const availableIntervals = ALL_INTERVALS.filter(int => config.selectedIntervals.includes(int.id));
+
+  // 调试信息
+  console.log('可用音程数量:', availableIntervals.length);
+  console.log('选中的音程:', config.selectedIntervals);
+
+  if (mode === 'NEW') {
+    const { directions } = config;
+    if (!directions || directions.length === 0) return alert("请至少选择一种播放模式");
+
+    for (let i = 0; i < config.questionCount; i++) {
+      const root = Math.floor(Math.random() * (config.rangeMax - config.rangeMin)) + config.rangeMin;
+      
+      if (availableIntervals.length === 0) return alert("请至少选择一个音程");
+      
+      const interval = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
+      
+      const randomDir = directions[Math.floor(Math.random() * directions.length)];
+      let dir = randomDir;
+      if (randomDir === 'random') dir = Math.random() > 0.5 ? 'asc' : 'desc';
+
+      const options = generateQuestionOptions(interval, availableIntervals);
+      
+      // 调试信息
+      console.log(`问题 ${i+1} 选项数量:`, options.length);
+      console.log('选项:', options.map(o => o.name));
+
+      newQueue.push({
+        id: Date.now() + i,
+        root: root,
+        notes: [root, root + interval.semitones],
+        interval: interval,
+        direction: dir,
+        options: options
+      });
     }
-    
-    const availableIntervals = ALL_INTERVALS.filter(int => config.selectedIntervals.includes(int.id));
+  } else if (mode === 'MISTAKES') {
+    newQueue = customQueue.map(q => {
+      const options = generateQuestionOptions(q.interval, availableIntervals);
+      console.log('复习问题选项数量:', options.length);
+      return {
+        ...q,
+        id: Date.now() + Math.random(), 
+        options: options
+      };
+    }).sort(() => Math.random() - 0.5);
+  }
 
-    if (mode === 'NEW') {
-      const { directions } = config;
-      if (!directions || directions.length === 0) return alert("请至少选择一种播放模式");
+  if (newQueue.length === 0) return alert("没有题目可供练习");
 
-      for (let i = 0; i < config.questionCount; i++) {
-        const root = Math.floor(Math.random() * (config.rangeMax - config.rangeMin)) + config.rangeMin;
-        
-        if (availableIntervals.length === 0) return alert("请至少选择一个音程");
-        
-        const interval = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
-        
-        const randomDir = directions[Math.floor(Math.random() * directions.length)];
-        let dir = randomDir;
-        if (randomDir === 'random') dir = Math.random() > 0.5 ? 'asc' : 'desc';
+  setQueue(newQueue);
+  setCurrentIndex(0);
+  setGameState('IDLE');
+  setFirstPlayDone(false);
+  setResponseTime(null);
+  setCurrentAnswer(null);
 
-        const options = generateQuestionOptions(interval, availableIntervals);
+  setView('GAME_INIT');
 
-        newQueue.push({
-          id: Date.now() + i,
-          root: root,
-          notes: [root, root + interval.semitones],
-          interval: interval,
-          direction: dir,
-          options: options
-        });
-      }
-    } else if (mode === 'MISTAKES') {
-      newQueue = customQueue.map(q => ({
-          ...q,
-          id: Date.now() + Math.random(), 
-          options: generateQuestionOptions(q.interval, availableIntervals)
-      })).sort(() => Math.random() - 0.5);
-    }
+  try {
+    await AudioEngine.init(); 
+  } catch(e) {
+    console.error("Audio init error", e);
+  }
 
-    if (newQueue.length === 0) return alert("没有题目可供练习");
-
-    setQueue(newQueue);
-    setCurrentIndex(0);
-    setGameState('IDLE');
-    setFirstPlayDone(false);
-    setResponseTime(null);
-    setCurrentAnswer(null);
-
-    setView('GAME_INIT');
-
-    try {
-        await AudioEngine.init(); 
-    } catch(e) {
-        console.error("Audio init error", e);
-    }
-
-    setView('GAME');
-  };
+  setView('GAME');
+};
 
   const handleBackToHome = () => {
       if (playbackTimeoutRef.current) {
