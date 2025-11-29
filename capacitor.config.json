@@ -1,0 +1,11 @@
+{
+  "appId": "com.earpro.training",
+  "appName": "EarPro",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always"
+  }
+}
