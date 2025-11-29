@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react'; 
 import { 
   Menu, Play, Settings, RotateCcw, Clock, 
   ChevronLeft, ChevronRight, Check, X, Trophy, Activity, 
@@ -120,6 +120,7 @@ const AudioEngine = {
         }
       } catch (e) {
         console.warn(`Failed to load sample for ${midi} (${instrumentId}) from ${url}`, e);
+        // Fallback to oscillator if samples fail to load
       }
     });
 
@@ -182,6 +183,7 @@ const AudioEngine = {
       source.start(startTime);
       source.stop(startTime + duration + 2.0);
     } else {
+      // Fallback to oscillator if no sample available
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = this.currentInstrument === 'piano' ? 'triangle' : 'sawtooth';
@@ -206,8 +208,7 @@ const AudioEngine = {
             console.log("AudioContext resumed successfully.");
         } catch (e) {
             console.error("Could not resume AudioContext:", e);
-            // You might want to trigger a UI alert here via a callback
-            return;
+            return 0; // Return 0 duration if we can't play
         }
     }
 
@@ -568,33 +569,30 @@ const RightPanel = ({ isOpen, onClose, config, setConfig }) => {
 // --- 6. 页面组件 ---
 
 const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, setIsLeftPanelOpen, setIsRightPanelOpen }) => (
-    <div className="flex flex-col h-full w-full bg-black overflow-hidden relative p-6 pt-14 pb-8">
+    <div className="flex flex-col h-full w-full bg-black overflow-hidden relative p-4 pt-12 pb-4">
         {/* Top Bar */}
-        <div className="flex justify-between items-center mb-8 flex-none">
-            <button onClick={() => setIsLeftPanelOpen(true)} className="text-zinc-400 hover:text-white transition-colors p-2 -ml-2">
+        <div className="flex justify-between items-center mb-6 flex-none">
+            <button onClick={() => setIsLeftPanelOpen(true)} className="text-zinc-400 hover:text-white transition-colors p-2">
                 <Menu size={28} />
             </button>
-            <button onClick={() => setIsRightPanelOpen(true)} className="text-zinc-400 hover:text-white transition-colors p-2 -mr-2">
+            <button onClick={() => setIsRightPanelOpen(true)} className="text-zinc-400 hover:text-white transition-colors p-2">
                 <Sliders size={28} />
             </button>
         </div>
         
-        {/* Main Content Area - Vertical Card Stack */}
-        <div className="flex-1 flex flex-col min-h-0 gap-4 pb-6 overflow-y-auto custom-scrollbar">
+        {/* Main Content Area - Adjusted for better screen adaptation */}
+        <div className="flex-1 flex flex-col min-h-0 gap-4 pb-4 overflow-y-auto">
             
-            {/* 1. Main Start Card (Top) - Horizontal Layout with Interactive Text */}
-            <button 
-                onClick={() => startSession('NEW')}
-                className="flex-[1.5] w-full bg-white rounded-[2.5rem] p-8 relative overflow-hidden group transition-all active:scale-[0.98] shrink-0 min-h-[240px] flex flex-row items-center justify-between shadow-xl"
-            >
+            {/* 1. Main Content Card - Changed to dark background */}
+            <div className="flex-1 w-full bg-zinc-900 rounded-[2.5rem] p-6 relative overflow-hidden group shrink-0 min-h-[200px] flex flex-row items-center justify-between border border-zinc-800">
                 {/* Background decoration */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-zinc-100 to-transparent rounded-bl-full opacity-70 pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-zinc-800 to-transparent rounded-bl-full opacity-70 pointer-events-none"></div>
                 
                 {/* Left Side: Title & Subtitle */}
                 <div className="flex flex-col justify-center items-start h-full z-10 space-y-4 w-full">
                      <div className="text-left">
-                        {/* Animated EAR PRO Title with Magnetic Letters */}
-                        <div className="text-5xl font-black tracking-tighter leading-[0.9] mb-2 flex flex-col items-start text-black">
+                        {/* EAR PRO Title */}
+                        <div className="text-4xl font-black tracking-tighter leading-[0.9] mb-2 flex flex-col items-start text-white">
                             <div className="flex">
                                 <MagneticLetter char="E" />
                                 <MagneticLetter char="A" />
@@ -607,56 +605,72 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
                             </div>
                         </div>
                         
-                        {/* Animated Subtitle using InteractiveText */}
-                        <div className="text-sm font-bold text-zinc-500 tracking-wide uppercase border-l-2 border-black pl-3 py-0.5">
-                            <InteractiveText text="Professional" baseColor="text-zinc-500" />
-                            <div className="h-0.5"></div>
-                            <InteractiveText text="Ear Training" baseColor="text-zinc-500" />
+                        {/* Subtitle */}
+                        <div className="text-sm font-bold text-zinc-400 tracking-wide uppercase border-l-2 border-zinc-600 pl-3 py-0.5">
+                            <div>Professional</div>
+                            <div>Ear Training</div>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Side: Big Play Button */}
+                {/* Right Side: Start Button Only */}
                 <div className="flex flex-col justify-center items-center z-10 h-full pl-4">
-                     <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                        <Play className="text-white ml-1" size={40} fill="white" />
-                    </div>
-                    <span className="text-zinc-900 font-bold text-xs uppercase tracking-widest mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Start</span>
+                     <button 
+                         onClick={() => startSession('NEW')}
+                         className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300 active:scale-95"
+                     >
+                         <Play className="text-black ml-1" size={32} fill="black" />
+                     </button>
+                     <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest mt-3">Start</span>
                 </div>
             </button>
 
             {/* 2. Bottom Row: Mistakes & Slow - Side by Side */}
-            <div className="flex-1 grid grid-cols-2 gap-4 min-h-[140px] shrink-0">
+            <div className="flex-1 grid grid-cols-2 gap-3 min-h-[120px] shrink-0">
                  {/* Mistakes */}
                  <div 
-                    className={`bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group
+                    className={`bg-zinc-900 rounded-2xl p-4 border border-zinc-800 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group
                         ${mistakes.length > 0 ? 'cursor-pointer hover:bg-zinc-800/80 hover:border-red-500/30' : 'opacity-50 cursor-not-allowed'}`}
-                    onClick={() => mistakes.length > 0 && startSession('MISTAKES', mistakes)}
                  >
                     <div className="flex justify-between items-start z-10">
                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider group-hover:text-red-400 transition-colors">Review</span>
-                        <AlertCircle className={`transition-transform duration-300 group-hover:scale-110 ${mistakes.length > 0 ? "text-red-500" : "text-zinc-700"}`} size={20} />
+                        <AlertCircle className={`transition-transform duration-300 group-hover:scale-110 ${mistakes.length > 0 ? "text-red-500" : "text-zinc-700"}`} size={18} />
                     </div>
                     <div className="z-10">
-                        <div className="text-4xl font-mono font-bold text-white tracking-tighter leading-none mb-1 group-hover:scale-105 origin-left transition-transform">{mistakes.length}</div>
+                        <div className="text-3xl font-mono font-bold text-white tracking-tighter leading-none mb-1">{mistakes.length}</div>
                         <div className="text-xs text-zinc-400 font-medium">Mistakes</div>
                     </div>
+                    {mistakes.length > 0 && (
+                        <button 
+                            onClick={() => startSession('MISTAKES', mistakes)}
+                            className="absolute bottom-3 right-3 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                        >
+                            <Play size={14} className="text-white ml-0.5" />
+                        </button>
+                    )}
                  </div>
 
                  {/* Slow */}
                  <div 
-                    className={`bg-zinc-900 rounded-[2rem] p-5 border border-zinc-800 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group
+                    className={`bg-zinc-900 rounded-2xl p-4 border border-zinc-800 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group
                         ${slowResponses.length > 0 ? 'cursor-pointer hover:bg-zinc-800/80 hover:border-yellow-500/30' : 'opacity-50 cursor-not-allowed'}`}
-                    onClick={() => slowResponses.length > 0 && startSession('MISTAKES', slowResponses)}
                  >
                     <div className="flex justify-between items-start z-10">
                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider group-hover:text-yellow-400 transition-colors">Practice</span>
-                        <Clock className={`transition-transform duration-300 group-hover:scale-110 ${slowResponses.length > 0 ? "text-yellow-500" : "text-zinc-700"}`} size={20} />
+                        <Clock className={`transition-transform duration-300 group-hover:scale-110 ${slowResponses.length > 0 ? "text-yellow-500" : "text-zinc-700"}`} size={18} />
                     </div>
                     <div className="z-10">
-                        <div className="text-4xl font-mono font-bold text-white tracking-tighter leading-none mb-1 group-hover:scale-105 origin-left transition-transform">{slowResponses.length}</div>
+                        <div className="text-3xl font-mono font-bold text-white tracking-tighter leading-none mb-1">{slowResponses.length}</div>
                         <div className="text-xs text-zinc-400 font-medium">Slow</div>
                     </div>
+                    {slowResponses.length > 0 && (
+                        <button 
+                            onClick={() => startSession('MISTAKES', slowResponses)}
+                            className="absolute bottom-3 right-3 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                        >
+                            <Play size={14} className="text-white ml-0.5" />
+                        </button>
+                    )}
                  </div>
             </div>
         </div>
@@ -694,10 +708,10 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, []);
 
-    const playOptionSound = (interval) => {
+    const playOptionSound = async (interval) => {
        const notes = [q.root, q.root + interval.semitones];
        const mode = q.direction === 'harmonic' ? 'harmonic' : 'melodic';
-       AudioEngine.playNotes(notes, mode, q.direction);
+       await AudioEngine.playNotes(notes, mode, q.direction);
     };
 
     const renderPiano = () => {
@@ -717,7 +731,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
        }
 
        return (
-          <div className="flex justify-center items-start h-72 relative select-none rounded-xl bg-black border border-zinc-800">
+          <div className="flex justify-center items-start h-64 relative select-none rounded-xl bg-black border border-zinc-800">
              {keys.map((midi) => {
                 const noteName = NOTE_NAMES[midi % 12];
                 const isBlack = noteName.includes('#');
@@ -737,7 +751,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
                    <div key={midi} className="relative flex-shrink-0">
                       {/* White Key */}
                       <div className={`
-                          w-10 h-72 border-l border-b-[8px] border-r border-zinc-400/50 bg-gradient-to-b from-gray-100 to-white rounded-b-[4px] flex items-end justify-center pb-6 transition-all duration-75
+                          w-10 h-64 border-l border-b-[8px] border-r border-zinc-400/50 bg-gradient-to-b from-gray-100 to-white rounded-b-[4px] flex items-end justify-center pb-6 transition-all duration-75
                           ${isRoot ? '!bg-indigo-500 !from-indigo-500 !to-indigo-600 !border-indigo-800 shadow-[0_0_15px_rgba(99,102,241,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-indigo-700' : ''}
                           ${isTarget ? '!bg-sky-400 !from-sky-400 !to-sky-500 !border-sky-600 shadow-[0_0_15px_rgba(56,189,248,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-sky-600' : ''}
                           active:scale-[0.99]
@@ -776,9 +790,9 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
       <div className="flex flex-col h-screen w-full bg-black overflow-hidden">
          
          {/* --- AREA 1: TOP (Header & Info) - Fixed --- */}
-         <div className="flex-none flex justify-between items-center px-6 pt-14 pb-4 z-30 bg-black">
+         <div className="flex-none flex justify-between items-center px-4 pt-12 pb-3 z-30 bg-black">
             {/* Left: Back Button */}
-            <div className="w-20 flex justify-start">
+            <div className="w-16 flex justify-start">
                 <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white active:bg-zinc-800 transition-colors">
                     <ChevronLeft size={20} />
                 </button>
@@ -789,14 +803,14 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
                 {/* Feedback (Left of time) */}
                 {currentAnswer ? (
                    <div className={`flex items-center gap-1.5 animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-                       <span className="text-xl font-bold">
+                       <span className="text-lg font-bold">
                            {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
                        </span>
                        {/* Vertical line */}
                        <div className="w-px h-5 bg-zinc-800 mx-2"></div>
                    </div>
                 ) : (
-                   <div className="flex items-center gap-2 text-zinc-400 text-xl font-bold animate-in fade-in">
+                   <div className="flex items-center gap-2 text-zinc-400 text-lg font-bold animate-in fade-in">
                       <span>仔细听</span>
                       <div className="w-px h-5 bg-zinc-800 mx-2"></div>
                    </div>
@@ -807,15 +821,15 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
             </div>
 
             {/* Right: Progress (Fixed Position) */}
-            <div className="w-20 flex justify-end items-center">
-                <span className="text-lg font-mono font-bold text-white leading-none">
+            <div className="w-16 flex justify-end items-center">
+                <span className="text-base font-mono font-bold text-white leading-none">
                     {currentIndex + 1}<span className="text-zinc-600 text-sm">/{queue.length}</span>
                 </span>
             </div>
          </div>
 
          {/* --- AREA 2: MIDDLE (Piano Only) - Centered --- */}
-         <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4">
+         <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-3">
             {/* Piano Visualization Container - Centered */}
             <div className="w-full flex flex-col items-center">
                <div 
@@ -829,7 +843,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
          </div>
 
          {/* --- AREA 3: BOTTOM (Controls) - Fixed Panel --- */}
-         <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-8 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+         <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-3 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
             
             {/* Control Row */}
             <div className="flex gap-2 mb-3">
@@ -886,8 +900,8 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
                     return (
                         <button
                             key={int.id}
-                            onClick={() => {
-                                playOptionSound(int);
+                            onClick={async () => {
+                                await playOptionSound(int);
                                 handleAnswer(int.id);
                             }}
                             className={btnClass}
@@ -952,9 +966,14 @@ export default function App() {
   const startSession = async (mode = 'NEW', customQueue = null) => {
     let newQueue = [];
     
-    await AudioEngine.init();
-    if (config.instrument && config.instrument !== 'piano') {
-        await AudioEngine.loadSamples(config.instrument);
+    // Initialize audio engine first
+    try {
+      await AudioEngine.init();
+      if (config.instrument && config.instrument !== 'piano') {
+          await AudioEngine.loadSamples(config.instrument);
+      }
+    } catch (error) {
+      console.error('Audio initialization failed:', error);
     }
     
     const availableIntervals = ALL_INTERVALS.filter(int => config.selectedIntervals.includes(int.id));
@@ -1004,13 +1023,10 @@ export default function App() {
 
     setView('GAME_INIT');
 
-    try {
-        await AudioEngine.init(); 
-    } catch(e) {
-        console.error("Audio init error", e);
-    }
-
-    setView('GAME');
+    // Additional audio check before starting game
+    setTimeout(() => {
+      setView('GAME');
+    }, 500);
   };
 
   const handleBackToHome = () => {
@@ -1024,24 +1040,36 @@ export default function App() {
       setView('HOME');
   };
 
-  const playCurrentQuestion = useCallback(() => {
+  const playCurrentQuestion = useCallback(async () => {
     const q = queue[currentIndex];
     if (!q) return;
 
     setGameState('PLAYING');
-    const duration = AudioEngine.playNotes(q.notes, q.direction === 'harmonic' ? 'harmonic' : 'melodic', q.direction);
     
-    if (playbackTimeoutRef.current) clearTimeout(playbackTimeoutRef.current);
-    playbackTimeoutRef.current = setTimeout(() => {
-      setGameState('WAITING_ANSWER');
-      // Only start timer if it hasn't started yet for this question
-      if (!firstPlayDone) {
-        setFirstPlayDone(true);
-        setTimerStart(Date.now());
+    try {
+      // Ensure audio is initialized
+      await AudioEngine.init();
+      if (config.instrument) {
+        await AudioEngine.loadSamples(config.instrument);
       }
-    }, duration * 1000);
+      
+      const duration = await AudioEngine.playNotes(q.notes, q.direction === 'harmonic' ? 'harmonic' : 'melodic', q.direction);
+      
+      if (playbackTimeoutRef.current) clearTimeout(playbackTimeoutRef.current);
+      playbackTimeoutRef.current = setTimeout(() => {
+        setGameState('WAITING_ANSWER');
+        // Only start timer if it hasn't started yet for this question
+        if (!firstPlayDone) {
+          setFirstPlayDone(true);
+          setTimerStart(Date.now());
+        }
+      }, duration * 1000);
+    } catch (error) {
+      console.error('Playback error:', error);
+      setGameState('WAITING_ANSWER');
+    }
 
-  }, [queue, currentIndex, firstPlayDone]);
+  }, [queue, currentIndex, firstPlayDone, config.instrument]);
 
   const handleAnswer = (intervalId) => {
     if (currentAnswer) return; 
@@ -1086,20 +1114,18 @@ export default function App() {
       setResponseTime(null);
       setCurrentAnswer(null);
       setTimerStart(null);
-      // Note: playCurrentQuestion will NOT be called automatically due to useEffect removal
     } else {
       setView('SUMMARY');
     }
   };
 
   return (
-    <div className="w-full h-screen bg-black overflow-hidden font-sans selection:bg-blue-500 selection:text-white max-w-md mx-auto relative shadow-2xl">
+    <div className="w-full h-screen bg-black overflow-hidden font-sans selection:bg-blue-500 selection:text-white max-w-md mx-auto relative">
        {view === 'HOME' && <HomeScreen mistakes={mistakes} slowResponses={slowResponses} history={history} startSession={startSession} setView={setView} setIsLeftPanelOpen={setIsLeftPanelOpen} setIsRightPanelOpen={setIsRightPanelOpen} />}
-       {view === 'SETTINGS' && <SettingsScreen config={config} setConfig={setConfig} setView={setView} startSession={startSession} />}
        {view === 'GAME_INIT' && (
           <div className="h-full flex items-center justify-center text-white flex-col gap-4">
             <Loader2 className="animate-spin text-blue-500" size={48} />
-            <p className="text-sm text-zinc-400">Loading Piano Samples...</p>
+            <p className="text-sm text-zinc-400">Loading Audio...</p>
           </div>
        )}
        {view === 'GAME' && <GameScreen 
@@ -1161,5 +1187,3 @@ export default function App() {
   );
 
 }
-
-
