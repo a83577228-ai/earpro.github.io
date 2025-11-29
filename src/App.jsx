@@ -568,7 +568,7 @@ const RightPanel = ({ isOpen, onClose, config, setConfig }) => {
 // --- 6. 页面组件 ---
 
 const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, setIsLeftPanelOpen, setIsRightPanelOpen }) => (
-    <div className="flex flex-col h-full w-full bg-black overflow-hidden relative p-6 pt-14 pb-8">
+    <div className="flex flex-col h-full w-full bg-black overflow-hidden relative p-6 pt-14 pb-8 safe-area-inset">
         {/* Top Bar */}
         <div className="flex justify-between items-center mb-8 flex-none">
             <button onClick={() => setIsLeftPanelOpen(true)} className="text-zinc-400 hover:text-white transition-colors p-2 -ml-2">
@@ -1095,7 +1095,12 @@ export default function App() {
   };
 
   return (
-    <div className="w-full h-screen bg-black overflow-hidden font-sans selection:bg-blue-500 selection:text-white max-w-md mx-auto relative shadow-2xl">
+    <div className="w-full h-screen bg-black overflow-hidden font-sans selection:bg-blue-500 selection:text-white max-w-md mx-auto relative shadow-2xl safe-area-inset">
+{/* 添加安全区域覆盖 */}
+  <div className="fixed bottom-0 left-0 right-0 h-[env(safe-area-inset-bottom)] bg-black z-50"></div>
+</div>
+<div className="fixed bottom-0 left-0 right-0 h-[env(safe-area-inset-bottom)] bg-black z-50"></div>
+</div>
        {view === 'HOME' && <HomeScreen mistakes={mistakes} slowResponses={slowResponses} history={history} startSession={startSession} setView={setView} setIsLeftPanelOpen={setIsLeftPanelOpen} setIsRightPanelOpen={setIsRightPanelOpen} />}
        {view === 'SETTINGS' && <SettingsScreen config={config} setConfig={setConfig} setView={setView} startSession={startSession} />}
        {view === 'GAME_INIT' && (
