@@ -623,7 +623,7 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
                      </button>
                      <span className="text-zinc-400 font-bold text-xs uppercase tracking-widest mt-3">Start</span>
                 </div>
-            </button>
+            </div>
 
             {/* 2. Bottom Row: Mistakes & Slow - Side by Side */}
             <div className="flex-1 grid grid-cols-2 gap-3 min-h-[120px] shrink-0">
@@ -1187,3 +1187,4 @@ export default function App() {
   );
 
 }
+
