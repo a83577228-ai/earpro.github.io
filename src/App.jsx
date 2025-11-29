@@ -790,47 +790,52 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
   return (
     <div className="flex flex-col h-screen w-full bg-black overflow-hidden">
       
-      {/* --- AREA 1: TOP (Header & Info) - Fixed --- */}
-      <div className="flex-none flex justify-between items-center px-4 pt-4 pb-4 z-30 bg-black">
+      {/* --- AREA A: TOP (Header) - Fixed --- */}
+      <div className="flex-none flex justify-between items-center px-4 pt-4 pb-2 z-30 bg-black">
         {/* Left: Back Button */}
         <div className="w-16 flex justify-start">
           <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white active:bg-zinc-800 transition-colors">
-            <ChevronLeft size={20} />
+            <ChevronLeft className="text-2xl" />
           </button>
         </div>
 
-        {/* Center: Feedback & Timer - 恢复水平布局 */}
-        <div className="flex-1 flex justify-center items-center gap-3">
-          {/* Feedback (Left of time) */}
-          {currentAnswer ? (
-            <div className={`flex items-center gap-1.5 animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-              <span className="text-sm font-bold">
-                {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
-              </span>
-              {/* Vertical line */}
-              <div className="w-px h-4 bg-zinc-800 mx-1"></div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-zinc-400 text-sm font-bold animate-in fade-in">
-              <span>仔细听</span>
-              <div className="w-px h-4 bg-zinc-800 mx-1"></div>
-            </div>
-          )}
-          
-          {/* Timer */}
-          <TimerDisplay startTime={timerStart} stoppedTime={responseTime} isCorrect={currentAnswer?.isCorrect} />
-        </div>
-
-        {/* Right: Progress (Fixed Position) */}
+        {/* Right: Progress (使用响应式字体大小) */}
         <div className="w-16 flex justify-end items-center">
-          <span className="text-sm font-mono font-bold text-white leading-none">
-            {currentIndex + 1}<span className="text-zinc-600 text-xs">/{queue.length}</span>
+          <span className="text-2xl md:text-3xl lg:text-4xl font-mono font-bold text-white leading-none">
+            {currentIndex + 1}<span className="text-zinc-600 text-xl md:text-2xl lg:text-3xl">/{queue.length}</span>
           </span>
         </div>
       </div>
 
-      {/* --- AREA 2: MIDDLE (Piano Only) - Centered --- */}
-      <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4">
+      {/* --- AREA B: 新增信息区域 - 放置仔细听和计时器 --- */}
+      <div className="flex-none flex justify-center items-center py-2 bg-black">
+        <div className="flex justify-center items-center gap-4">
+          {/* Feedback (使用响应式字体大小) */}
+          {currentAnswer ? (
+            <div className={`flex items-center gap-2 animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
+              <span className="text-2xl md:text-3xl lg:text-4xl font-bold">
+                {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
+              </span>
+              {/* Vertical line */}
+              <div className="w-px h-6 md:h-8 bg-zinc-800 mx-1 md:mx-2"></div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 text-zinc-400 text-2xl md:text-3xl lg:text-4xl font-bold animate-in fade-in">
+              <span>仔细听</span>
+              <div className="w-px h-6 md:h-8 bg-zinc-800 mx-1 md:mx-2"></div>
+            </div>
+          )}
+          
+          {/* Timer (使用响应式字体大小) */}
+          <div className={`font-mono text-2xl md:text-3xl lg:text-4xl font-bold tabular-nums tracking-tight leading-none ${currentAnswer ? (currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500') : 'text-white'}`}> 
+            {responseTime !== null ? responseTime.toFixed(2) : (timerStart ? ((Date.now() - timerStart) / 1000).toFixed(2) : '0.00')}
+            <span className="text-base md:text-lg lg:text-xl text-zinc-600 ml-1 font-sans font-medium">s</span>
+          </div>
+        </div>
+      </div>
+
+      {/* --- AREA C: MIDDLE (Piano Only) - Centered --- */}
+      <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4 mt-[5px]">
         {/* Piano Visualization Container - Centered */}
         <div className="w-full flex flex-col items-center">
           <div 
@@ -843,15 +848,15 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
         </div>
       </div>
 
-      {/* --- AREA 3: BOTTOM (Controls) - Fixed Panel --- */}
-      <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+      {/* --- AREA D: BOTTOM (Controls) - Fixed Panel (与中间区域保持5px距离) --- */}
+      <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] mt-[5px]">
         
         {/* Control Row */}
         <div className="flex gap-2 mb-4">
           <button 
             onClick={playCurrentQuestion}
             disabled={gameState === 'PLAYING'}
-            className={`h-12 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-sm flex-1
+            className={`h-12 md:h-14 lg:h-16 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-base md:text-lg lg:text-xl flex-1
               ${currentAnswer 
                 ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700' 
                 : 'bg-white text-black shadow-sm hover:bg-zinc-100'}
@@ -859,8 +864,8 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
             `}
           >
             {gameState === 'PLAYING' 
-              ? <Activity className="animate-pulse" size={16} /> 
-              : (currentAnswer ? <RefreshCw size={14} /> : <Play fill="currentColor" size={16} />)
+              ? <Activity className="animate-pulse text-lg md:text-xl lg:text-2xl" /> 
+              : (currentAnswer ? <RefreshCw className="text-base md:text-lg lg:text-xl" /> : <Play fill="currentColor" className="text-lg md:text-xl lg:text-2xl" />)
             }
             {currentAnswer ? 'Replay' : 'Play Sound'}
           </button>
@@ -868,21 +873,21 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
           {currentAnswer && (
             <button 
               onClick={nextQuestion}
-              className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 px-6"
+              className="h-12 md:h-14 lg:h-16 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base md:text-lg lg:text-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 px-6"
             >
-              Next <ChevronRight size={18} />
+              Next <ChevronRight className="text-lg md:text-xl lg:text-2xl" />
             </button>
           )}
         </div>
 
-        {/* Options Grid - 动态显示选项 */}
+        {/* Options Grid - 动态显示选项 (使用响应式字体大小) */}
         <div className={`grid gap-3 ${q.options.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
           {q.options.map(int => {
             const isSelected = currentAnswer?.selectedId === int.id;
             const isCorrect = currentAnswer?.correctId === int.id;
             const showResult = !!currentAnswer;
             
-            let btnClass = "border rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden h-14 flex items-center justify-center";
+            let btnClass = "border rounded-xl font-bold text-base md:text-lg lg:text-xl transition-all duration-200 relative overflow-hidden h-14 md:h-16 lg:h-18 flex items-center justify-center";
             
             if (showResult) {
               if (isCorrect) {
@@ -914,8 +919,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
       </div>
     </div>
   );
-};
-// Main App
+};// Main App
 export default function App() {
   const [view, setView] = useState('HOME'); 
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
