@@ -27,9 +27,9 @@ const ALL_INTERVALS = [
 ];
 
 const INSTRUMENTS = {
-  piano: { name: 'Piano', id: 'acoustic_grand_piano', path: '/audio/acoustic_grand_piano-mp3' }, // Updated path
-  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon', path: '/audio/acoustic_guitar_nylon-mp3' }, // Assuming similar path structure
-  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel', path: '/audio/acoustic_guitar_steel-mp3' }, // Assuming similar path structure
+  piano: { name: 'Piano', id: 'acoustic_grand_piano', path: '/audio/acoustic_grand_piano-mp3' },
+  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon', path: '/audio/acoustic_guitar_nylon-mp3' },
+  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel', path: '/audio/acoustic_guitar_steel-mp3' },
 };
 
 // --- 2. 音频引擎 (Audio Engine) ---
@@ -40,9 +40,8 @@ const AudioEngine = {
   loaded: false,
   loadingPromise: null,
   currentInstrument: 'piano',
-  onStateChangeCallback: null, // Callback for UI updates on state change
+  onStateChangeCallback: null,
 
-  // Updated midiToNoteName to match likely file naming (e.g., "A4.mp3")
   midiToNoteName(midi) {
     const notes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
     const octave = Math.floor(midi / 12) - 1;
@@ -57,17 +56,15 @@ const AudioEngine = {
       this.gainNode.connect(this.ctx.destination);
       this.gainNode.gain.value = 0.8;
 
-      // Listen for state changes
       this.ctx.onstatechange = () => {
           console.log(`AudioContext state changed to: ${this.ctx.state}`);
           if (this.onStateChangeCallback) {
               this.onStateChangeCallback(this.ctx.state);
           }
-          // Re-init if closed unexpectedly (preemption)
           if (this.ctx.state === 'closed') {
               console.warn("AudioContext closed unexpectedly. Re-initializing...");
-              this.ctx = null; // Clear old context
-              this.init(); // Re-init
+              this.ctx = null;
+              this.init();
           }
       };
     }
@@ -86,16 +83,14 @@ const AudioEngine = {
     return this.loadingPromise;
   },
   
-  // Helper to register UI callback
   setOnStateChange(callback) {
       this.onStateChangeCallback = callback;
   },
 
   async loadSamples(instrumentId = 'piano') {
     this.currentInstrument = instrumentId;
-    // Load more keys for better quality if local, or stick to these for efficiency
     const baseMidis = [36, 48, 60, 72, 84]; 
-    const instPath = INSTRUMENTS[instrumentId].path; // Use local path
+    const instPath = INSTRUMENTS[instrumentId].path;
 
     console.log(`Loading samples for ${instrumentId} from ${instPath}...`);
 
@@ -107,7 +102,6 @@ const AudioEngine = {
       if (this.buffers[instrumentId][midi]) return;
 
       const noteName = this.midiToNoteName(midi);
-      // Construct local URL. Assuming files are named like "C4.mp3" inside the folder
       const url = `${instPath}/${noteName}.mp3`; 
 
       try {
@@ -152,15 +146,14 @@ const AudioEngine = {
   },
 
   async playTone(midi, startTime, duration) {
-    if (!this.ctx) await this.init(); // Ensure ctx exists
+    if (!this.ctx) await this.init();
     
-    // Force resume if suspended (Crucial for iOS)
     if (this.ctx.state === 'suspended') {
         try {
             await this.ctx.resume();
         } catch (e) {
             console.error("Failed to resume context during playTone:", e);
-            return; // Stop if we can't play
+            return;
         }
     }
 
@@ -199,14 +192,12 @@ const AudioEngine = {
   async playNotes(notes, mode, direction) { 
     if (!this.ctx) await this.init();
 
-    // 1. State Check & Forced Resume
     if (this.ctx.state === 'suspended') {
         try {
             await this.ctx.resume();
             console.log("AudioContext resumed successfully.");
         } catch (e) {
             console.error("Could not resume AudioContext:", e);
-            // You might want to trigger a UI alert here via a callback
             return;
         }
     }
@@ -665,9 +656,123 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
     </div>
 );
 
-// 在 GameScreen 组件开始处添加
 const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, firstPlayDone, currentAnswer, config, playCurrentQuestion, handleAnswer, nextQuestion, setView, goBack }) => {
-  // ... 前面的代码保持不变 ...
+  if (!queue || queue.length === 0 || currentIndex >= queue.length) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-black items-center justify-center">
+        <div className="text-white text-lg">加载中...</div>
+        <button onClick={goBack} className="mt-4 px-4 py-2 bg-white text-black rounded">
+          返回首页
+        </button>
+      </div>
+    );
+  }
+  
+  const q = queue[currentIndex];
+  const scrollRef = useRef(null);
+  
+  useEffect(() => {
+    if (scrollRef.current) {
+      const minNote = Math.min(...q.notes);
+      const noteOffset = (minNote - config.rangeMin); 
+      const scrollPos = Math.max(0, (noteOffset * 40) - 120); 
+      
+      scrollRef.current.scrollTo({
+        left: scrollPos,
+        behavior: 'smooth'
+      });
+    }
+  }, [q, config.rangeMin]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
+        AudioEngine.ctx.resume().then(() => {
+          console.log('AudioContext resumed on visibility change');
+        }).catch(e => console.warn(e));
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  const playOptionSound = (interval) => {
+    const notes = [q.root, q.root + interval.semitones];
+    const mode = q.direction === 'harmonic' ? 'harmonic' : 'melodic';
+    AudioEngine.playNotes(notes, mode, q.direction);
+  };
+
+  const renderPiano = () => {
+    const centerMidi = q.root;
+    const minNote = Math.min(...q.notes);
+    const maxNote = Math.max(...q.notes);
+    
+    let startMidi = Math.min(minNote - 5, centerMidi - 7);
+    let endMidi = Math.max(maxNote + 5, centerMidi + 7);
+    
+    startMidi = Math.max(0, startMidi);
+    endMidi = Math.min(127, endMidi);
+
+    const keys = [];
+    for (let i = startMidi; i <= endMidi; i++) {
+      keys.push(i);
+    }
+
+    return (
+      <div className="flex justify-center items-start h-72 relative select-none rounded-xl bg-black border border-zinc-800">
+        {keys.map((midi) => {
+          const noteName = NOTE_NAMES[midi % 12];
+          const isBlack = noteName.includes('#');
+          if (isBlack) return null; 
+          
+          const nextMidi = midi + 1;
+          const nextNoteName = NOTE_NAMES[nextMidi % 12];
+          const hasBlackNext = nextNoteName.includes('#') && nextMidi <= endMidi;
+
+          const isRoot = currentAnswer && q.notes.includes(midi) && midi === q.notes[0];
+          const isTarget = currentAnswer && q.notes.includes(midi) && midi !== q.notes[0];
+
+          const showLabel = !!currentAnswer; 
+          const labelText = `${noteName}${Math.floor(midi/12)-1}`;
+
+          return (
+            <div key={midi} className="relative flex-shrink-0">
+              {/* White Key */}
+              <div className={`
+                w-10 h-72 border-l border-b-[8px] border-r border-zinc-400/50 bg-gradient-to-b from-gray-100 to-white rounded-b-[4px] flex items-end justify-center pb-6 transition-all duration-75
+                ${isRoot ? '!bg-indigo-500 !from-indigo-500 !to-indigo-600 !border-indigo-800 shadow-[0_0_15px_rgba(99,102,241,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-indigo-700' : ''}
+                ${isTarget ? '!bg-sky-400 !from-sky-400 !to-sky-500 !border-sky-600 shadow-[0_0_15px_rgba(56,189,248,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-sky-600' : ''}
+                active:scale-[0.99]
+              `}>
+                {showLabel && (
+                  <span className={`text-[10px] font-bold mb-2 select-none z-50 ${isRoot || isTarget ? 'text-white' : 'text-black/50'}`}>
+                    {labelText}
+                  </span>
+                )}
+              </div>
+              
+              {/* Black Key */}
+              {hasBlackNext && (
+                <div className={`
+                  absolute -right-3 top-0 w-6 h-48 z-20 rounded-b-[3px] 
+                  bg-gradient-to-b from-zinc-900 via-zinc-800 to-black
+                  border-x border-b-[8px] border-zinc-950 shadow-md
+                  transition-all duration-75
+                  ${currentAnswer && q.notes.includes(nextMidi) 
+                    ? (q.notes[0] === nextMidi 
+                      ? '!bg-indigo-700 !from-indigo-600 !to-indigo-900 !border-indigo-950 shadow-[0_0_15px_rgba(99,102,241,0.6)] translate-y-[2px] border-b-[3px]' 
+                      : '!bg-sky-600 !from-sky-500 !to-sky-800 !border-sky-950 shadow-[0_0_15px_rgba(56,189,248,0.6)] translate-y-[2px] border-b-[3px]')
+                    : ''}
+                `}>
+                  <div className="w-full h-4 bg-white/10 rounded-t-[3px] opacity-50"></div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  };
 
   return (
     <div className="flex flex-col h-screen w-full bg-black overflow-hidden">
@@ -825,10 +930,6 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
 // Main App
 export default function App() {
   const [view, setView] = useState('HOME'); 
-  // ... 其他状态和逻辑保持不变 ...
-} Main App
-export default function App() {
-  const [view, setView] = useState('HOME'); 
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
@@ -855,99 +956,89 @@ export default function App() {
   
   const playbackTimeoutRef = useRef(null);
 
-const generateQuestionOptions = (correctInterval, pool) => {
-  let effectivePool = pool;
-  if (!pool.find(i => i.id === correctInterval.id)) {
-    effectivePool = [...pool, correctInterval];
-  }
-  
-  if (effectivePool.length <= 4) {
-    return effectivePool.sort((a, b) => a.semitones - b.semitones);
-  }
-  
-  // 从干扰项中随机选择3个，确保正确答案在选项中
-  const otherIntervals = effectivePool.filter(i => i.id !== correctInterval.id);
-  const shuffledDistractors = [...otherIntervals].sort(() => 0.5 - Math.random()).slice(0, 3);
-  
-  const options = [correctInterval, ...shuffledDistractors];
-  return options.sort((a, b) => a.semitones - b.semitones);
-};
+  const generateQuestionOptions = (correctInterval, pool) => {
+    let effectivePool = pool;
+    if (!pool.find(i => i.id === correctInterval.id)) {
+      effectivePool = [...pool, correctInterval];
+    }
+    
+    if (effectivePool.length <= 4) {
+      return effectivePool.sort((a, b) => a.semitones - b.semitones);
+    }
+    
+    const otherIntervals = effectivePool.filter(i => i.id !== correctInterval.id);
+    const shuffledDistractors = [...otherIntervals].sort(() => 0.5 - Math.random()).slice(0, 3);
+    
+    const options = [correctInterval, ...shuffledDistractors];
+    return options.sort((a, b) => a.semitones - b.semitones);
+  };
 
   const startSession = async (mode = 'NEW', customQueue = null) => {
-  let newQueue = [];
-  
-  await AudioEngine.init();
-  if (config.instrument && config.instrument !== 'piano') {
-    await AudioEngine.loadSamples(config.instrument);
-  }
-  
-  const availableIntervals = ALL_INTERVALS.filter(int => config.selectedIntervals.includes(int.id));
-
-  // 调试信息
-  console.log('可用音程数量:', availableIntervals.length);
-  console.log('选中的音程:', config.selectedIntervals);
-
-  if (mode === 'NEW') {
-    const { directions } = config;
-    if (!directions || directions.length === 0) return alert("请至少选择一种播放模式");
-
-    for (let i = 0; i < config.questionCount; i++) {
-      const root = Math.floor(Math.random() * (config.rangeMax - config.rangeMin)) + config.rangeMin;
-      
-      if (availableIntervals.length === 0) return alert("请至少选择一个音程");
-      
-      const interval = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
-      
-      const randomDir = directions[Math.floor(Math.random() * directions.length)];
-      let dir = randomDir;
-      if (randomDir === 'random') dir = Math.random() > 0.5 ? 'asc' : 'desc';
-
-      const options = generateQuestionOptions(interval, availableIntervals);
-      
-      // 调试信息
-      console.log(`问题 ${i+1} 选项数量:`, options.length);
-      console.log('选项:', options.map(o => o.name));
-
-      newQueue.push({
-        id: Date.now() + i,
-        root: root,
-        notes: [root, root + interval.semitones],
-        interval: interval,
-        direction: dir,
-        options: options
-      });
+    let newQueue = [];
+    
+    await AudioEngine.init();
+    if (config.instrument && config.instrument !== 'piano') {
+      await AudioEngine.loadSamples(config.instrument);
     }
-  } else if (mode === 'MISTAKES') {
-    newQueue = customQueue.map(q => {
-      const options = generateQuestionOptions(q.interval, availableIntervals);
-      console.log('复习问题选项数量:', options.length);
-      return {
-        ...q,
-        id: Date.now() + Math.random(), 
-        options: options
-      };
-    }).sort(() => Math.random() - 0.5);
-  }
+    
+    const availableIntervals = ALL_INTERVALS.filter(int => config.selectedIntervals.includes(int.id));
 
-  if (newQueue.length === 0) return alert("没有题目可供练习");
+    if (mode === 'NEW') {
+      const { directions } = config;
+      if (!directions || directions.length === 0) return alert("请至少选择一种播放模式");
 
-  setQueue(newQueue);
-  setCurrentIndex(0);
-  setGameState('IDLE');
-  setFirstPlayDone(false);
-  setResponseTime(null);
-  setCurrentAnswer(null);
+      for (let i = 0; i < config.questionCount; i++) {
+        const root = Math.floor(Math.random() * (config.rangeMax - config.rangeMin)) + config.rangeMin;
+        
+        if (availableIntervals.length === 0) return alert("请至少选择一个音程");
+        
+        const interval = availableIntervals[Math.floor(Math.random() * availableIntervals.length)];
+        
+        const randomDir = directions[Math.floor(Math.random() * directions.length)];
+        let dir = randomDir;
+        if (randomDir === 'random') dir = Math.random() > 0.5 ? 'asc' : 'desc';
 
-  setView('GAME_INIT');
+        const options = generateQuestionOptions(interval, availableIntervals);
 
-  try {
-    await AudioEngine.init(); 
-  } catch(e) {
-    console.error("Audio init error", e);
-  }
+        newQueue.push({
+          id: Date.now() + i,
+          root: root,
+          notes: [root, root + interval.semitones],
+          interval: interval,
+          direction: dir,
+          options: options
+        });
+      }
+    } else if (mode === 'MISTAKES') {
+      newQueue = customQueue.map(q => {
+        const options = generateQuestionOptions(q.interval, availableIntervals);
+        return {
+          ...q,
+          id: Date.now() + Math.random(), 
+          options: options
+        };
+      }).sort(() => Math.random() - 0.5);
+    }
 
-  setView('GAME');
-};
+    if (newQueue.length === 0) return alert("没有题目可供练习");
+
+    setQueue(newQueue);
+    setCurrentIndex(0);
+    setGameState('IDLE');
+    setFirstPlayDone(false);
+    setResponseTime(null);
+    setCurrentAnswer(null);
+
+    setView('GAME_INIT');
+
+    try {
+      await AudioEngine.init(); 
+    } catch(e) {
+      console.error("Audio init error", e);
+    }
+
+    setView('GAME');
+  };
 
   const handleBackToHome = () => {
       if (playbackTimeoutRef.current) {
@@ -970,7 +1061,6 @@ const generateQuestionOptions = (correctInterval, pool) => {
     if (playbackTimeoutRef.current) clearTimeout(playbackTimeoutRef.current);
     playbackTimeoutRef.current = setTimeout(() => {
       setGameState('WAITING_ANSWER');
-      // Only start timer if it hasn't started yet for this question
       if (!firstPlayDone) {
         setFirstPlayDone(true);
         setTimerStart(Date.now());
@@ -983,7 +1073,6 @@ const generateQuestionOptions = (correctInterval, pool) => {
     if (currentAnswer) return; 
     
     const now = Date.now();
-    // If timer hasn't started (user answered during playback or before start), handle gracefully
     const timeTaken = timerStart ? (now - timerStart) / 1000 : 0;
     setResponseTime(timeTaken);
 
@@ -1022,7 +1111,6 @@ const generateQuestionOptions = (correctInterval, pool) => {
       setResponseTime(null);
       setCurrentAnswer(null);
       setTimerStart(null);
-      // Note: playCurrentQuestion will NOT be called automatically due to useEffect removal
     } else {
       setView('SUMMARY');
     }
