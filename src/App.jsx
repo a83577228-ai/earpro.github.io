@@ -667,125 +667,7 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
 
 // 在 GameScreen 组件开始处添加
 const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, firstPlayDone, currentAnswer, config, playCurrentQuestion, handleAnswer, nextQuestion, setView, goBack }) => {
-  // 保护性检查
-  if (!queue || queue.length === 0 || currentIndex >= queue.length) {
-    return (
-      <div className="flex flex-col h-screen w-full bg-black items-center justify-center">
-        <div className="text-white text-lg">加载中...</div>
-        <button onClick={goBack} className="mt-4 px-4 py-2 bg-white text-black rounded">
-          返回首页
-        </button>
-      </div>
-    );
-  }
-  
-  const q = queue[currentIndex];
-  const scrollRef = useRef(null);
-  
-  // Auto-scroll logic
-  useEffect(() => {
-    if (scrollRef.current) {
-      const minNote = Math.min(...q.notes);
-      const noteOffset = (minNote - config.rangeMin); 
-      const scrollPos = Math.max(0, (noteOffset * 40) - 120); 
-      
-      scrollRef.current.scrollTo({
-        left: scrollPos,
-        behavior: 'smooth'
-      });
-    }
-  }, [q, config.rangeMin]);
-
-  // 监听 visibilitychange，从后台切回来时尝试恢复 AudioContext
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
-        AudioEngine.ctx.resume().then(() => {
-          console.log('AudioContext resumed on visibility change');
-        }).catch(e => console.warn(e));
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  const playOptionSound = (interval) => {
-    const notes = [q.root, q.root + interval.semitones];
-    const mode = q.direction === 'harmonic' ? 'harmonic' : 'melodic';
-    AudioEngine.playNotes(notes, mode, q.direction);
-  };
-
-  const renderPiano = () => {
-    const centerMidi = q.root;
-    const minNote = Math.min(...q.notes);
-    const maxNote = Math.max(...q.notes);
-    
-    let startMidi = Math.min(minNote - 5, centerMidi - 7);
-    let endMidi = Math.max(maxNote + 5, centerMidi + 7);
-    
-    startMidi = Math.max(0, startMidi);
-    endMidi = Math.min(127, endMidi);
-
-    const keys = [];
-    for (let i = startMidi; i <= endMidi; i++) {
-      keys.push(i);
-    }
-
-    return (
-      <div className="flex justify-center items-start h-72 relative select-none rounded-xl bg-black border border-zinc-800">
-        {keys.map((midi) => {
-          const noteName = NOTE_NAMES[midi % 12];
-          const isBlack = noteName.includes('#');
-          if (isBlack) return null; 
-          
-          const nextMidi = midi + 1;
-          const nextNoteName = NOTE_NAMES[nextMidi % 12];
-          const hasBlackNext = nextNoteName.includes('#') && nextMidi <= endMidi;
-
-          const isRoot = currentAnswer && q.notes.includes(midi) && midi === q.notes[0];
-          const isTarget = currentAnswer && q.notes.includes(midi) && midi !== q.notes[0];
-
-          const showLabel = !!currentAnswer; 
-          const labelText = `${noteName}${Math.floor(midi/12)-1}`;
-
-          return (
-            <div key={midi} className="relative flex-shrink-0">
-              {/* White Key */}
-              <div className={`
-                w-10 h-72 border-l border-b-[8px] border-r border-zinc-400/50 bg-gradient-to-b from-gray-100 to-white rounded-b-[4px] flex items-end justify-center pb-6 transition-all duration-75
-                ${isRoot ? '!bg-indigo-500 !from-indigo-500 !to-indigo-600 !border-indigo-800 shadow-[0_0_15px_rgba(99,102,241,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-indigo-700' : ''}
-                ${isTarget ? '!bg-sky-400 !from-sky-400 !to-sky-500 !border-sky-600 shadow-[0_0_15px_rgba(56,189,248,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-sky-600' : ''}
-                active:scale-[0.99]
-              `}>
-                {showLabel && (
-                  <span className={`text-[10px] font-bold mb-2 select-none z-50 ${isRoot || isTarget ? 'text-white' : 'text-black/50'}`}>
-                    {labelText}
-                  </span>
-                )}
-              </div>
-              
-              {/* Black Key */}
-              {hasBlackNext && (
-                <div className={`
-                  absolute -right-3 top-0 w-6 h-48 z-20 rounded-b-[3px] 
-                  bg-gradient-to-b from-zinc-900 via-zinc-800 to-black
-                  border-x border-b-[8px] border-zinc-950 shadow-md
-                  transition-all duration-75
-                  ${currentAnswer && q.notes.includes(nextMidi) 
-                    ? (q.notes[0] === nextMidi 
-                      ? '!bg-indigo-700 !from-indigo-600 !to-indigo-900 !border-indigo-950 shadow-[0_0_15px_rgba(99,102,241,0.6)] translate-y-[2px] border-b-[3px]' 
-                      : '!bg-sky-600 !from-sky-500 !to-sky-800 !border-sky-950 shadow-[0_0_15px_rgba(56,189,248,0.6)] translate-y-[2px] border-b-[3px]')
-                    : ''}
-                `}>
-                  <div className="w-full h-4 bg-white/10 rounded-t-[3px] opacity-50"></div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    )
-  };
+  // ... 前面的代码保持不变 ...
 
   return (
     <div className="flex flex-col h-screen w-full bg-black overflow-hidden">
@@ -799,7 +681,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
           </button>
         </div>
 
-        {/* Right: Progress (使用响应式字体大小) */}
+        {/* Right: Progress */}
         <div className="w-16 flex justify-end items-center">
           <span className="text-2xl md:text-3xl lg:text-4xl font-mono font-bold text-white leading-none">
             {currentIndex + 1}<span className="text-zinc-600 text-xl md:text-2xl lg:text-3xl">/{queue.length}</span>
@@ -807,16 +689,14 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
         </div>
       </div>
 
-      {/* --- AREA B: 新增信息区域 - 放置仔细听和计时器 --- */}
+      {/* --- AREA B: 信息区域 - 放置仔细听和计时器 --- */}
       <div className="flex-none flex justify-center items-center py-2 bg-black">
         <div className="flex justify-center items-center gap-4">
-          {/* Feedback (使用响应式字体大小) */}
           {currentAnswer ? (
             <div className={`flex items-center gap-2 animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
               <span className="text-2xl md:text-3xl lg:text-4xl font-bold">
                 {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
               </span>
-              {/* Vertical line */}
               <div className="w-px h-6 md:h-8 bg-zinc-800 mx-1 md:mx-2"></div>
             </div>
           ) : (
@@ -826,7 +706,6 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
             </div>
           )}
           
-          {/* Timer (使用响应式字体大小) */}
           <div className={`font-mono text-2xl md:text-3xl lg:text-4xl font-bold tabular-nums tracking-tight leading-none ${currentAnswer ? (currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500') : 'text-white'}`}> 
             {responseTime !== null ? responseTime.toFixed(2) : (timerStart ? ((Date.now() - timerStart) / 1000).toFixed(2) : '0.00')}
             <span className="text-base md:text-lg lg:text-xl text-zinc-600 ml-1 font-sans font-medium">s</span>
@@ -835,116 +714,119 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
       </div>
 
       {/* --- AREA C: MIDDLE (Piano Only) - Centered --- */}
-      // --- AREA C: MIDDLE (Piano Only) - Centered ---
-// --- AREA C: MIDDLE (Piano Only) - Centered ---
-<div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4 mt-[5px]">
-  {/* Piano Visualization Container - Centered */}
-  <div className="w-full flex flex-col items-center relative">
-    <div 
-      className="w-full max-w-md overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth snap-x pb-2"
-      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      ref={scrollRef}
-    >
-      <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
-      {renderPiano()}
-      
-      {/* Play Sound Button - 绝对定位在键盘底部边缘 */}
-      <button 
-        onClick={playCurrentQuestion}
-        disabled={gameState === 'PLAYING'}
-        className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-12 px-8 rounded-t-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-sm
-            ${currentAnswer 
-              ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700 border-b-0' 
-              : 'bg-white text-black shadow-sm hover:bg-zinc-100 border-t border-x border-zinc-200 border-b-0'}
-            active:scale-95 z-50
-        `}
-        style={{ 
-          minWidth: '140px',
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
-        }}
-      >
-        {gameState === 'PLAYING' 
-          ? <Activity className="animate-pulse" size={16} /> 
-          : (currentAnswer ? <RefreshCw size={14} /> : <Play fill="currentColor" size={16} />)
-        }
-        {currentAnswer ? 'Replay' : 'Play Sound'}
-      </button>
-    </div>
-  </div>
-</div>
-
-// --- AREA D: BOTTOM (Controls) - Fixed Panel ---
-<div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] safe-area-bottom">
-  
-  {/* Control Row - 移除Play Sound按钮，只保留Next按钮 */}
-  <div className="flex gap-2 mb-4 justify-end">
-    {currentAnswer && (
-      <button 
-        onClick={nextQuestion}
-        className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 px-6"
-      >
-        Next <ChevronRight size={18} />
-      </button>
-    )}
-  </div>
-
-  {/* Options Grid - 保持不变 */}
-  <div className="grid grid-cols-2 gap-3">
-    {(() => {
-      // 确保选项数量不超过4个
-      const displayOptions = q.options.slice(0, 4);
-      
-      // 用null填充不足4个的位置
-      while (displayOptions.length < 4) {
-        displayOptions.push(null);
-      }
-      
-      return displayOptions.map((int, index) => {
-        if (!int) {
-          // 空位置 - 显示透明占位按钮
-          return (
-            <div 
-              key={`placeholder-${index}`}
-              className="border border-transparent rounded-xl h-14 opacity-0"
-            ></div>
-          );
-        }
-        
-        const isSelected = currentAnswer?.selectedId === int.id;
-        const isCorrect = currentAnswer?.correctId === int.id;
-        const showResult = !!currentAnswer;
-        
-        let btnClass = "border rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden h-14 flex items-center justify-center";
-        
-        if (showResult) {
-          if (isCorrect) {
-            btnClass += " bg-green-600 border-green-500 text-white shadow-sm";
-          } else if (isSelected) {
-            btnClass += " bg-red-600 border-red-500 text-white";
-          } else {
-            // The "rest" of the options -> White Background, Black Text
-            btnClass += " bg-white border-zinc-200 text-black opacity-100";
-          }
-        } else {
-          btnClass += " bg-black border-zinc-800 text-zinc-300 hover:bg-zinc-800 active:scale-95 active:bg-white active:text-black";
-        }
-
-        return (
-          <button
-            key={int.id}
-            onClick={() => {
-              playOptionSound(int);
-              handleAnswer(int.id);
-            }}
-            className={btnClass}
+      <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4 mt-[5px]">
+        {/* Piano Visualization Container - Centered */}
+        <div className="w-full flex flex-col items-center relative">
+          <div 
+            className="w-full max-w-md overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth snap-x pb-2"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            ref={scrollRef}
           >
-            {int.name}
-          </button>
-        );
-      });
-    })()}
-  </div>
-</div> Main App
+            <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+            {renderPiano()}
+            
+            {/* Play Sound Button - 绝对定位在键盘底部边缘 */}
+            <button 
+              onClick={playCurrentQuestion}
+              disabled={gameState === 'PLAYING'}
+              className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-12 px-8 rounded-t-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-sm
+                  ${currentAnswer 
+                    ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700 border-b-0' 
+                    : 'bg-white text-black shadow-sm hover:bg-zinc-100 border-t border-x border-zinc-200 border-b-0'}
+                  active:scale-95 z-50
+              `}
+              style={{ 
+                minWidth: '140px',
+                boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
+              }}
+            >
+              {gameState === 'PLAYING' 
+                ? <Activity className="animate-pulse" size={16} /> 
+                : (currentAnswer ? <RefreshCw size={14} /> : <Play fill="currentColor" size={16} />)
+              }
+              {currentAnswer ? 'Replay' : 'Play Sound'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* --- AREA D: BOTTOM (Controls) - Fixed Panel --- */}
+      <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] safe-area-bottom">
+        
+        {/* Control Row - 移除Play Sound按钮，只保留Next按钮 */}
+        <div className="flex gap-2 mb-4 justify-end">
+          {currentAnswer && (
+            <button 
+              onClick={nextQuestion}
+              className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 px-6"
+            >
+              Next <ChevronRight size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Options Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {(() => {
+            const displayOptions = q.options.slice(0, 4);
+            
+            while (displayOptions.length < 4) {
+              displayOptions.push(null);
+            }
+            
+            return displayOptions.map((int, index) => {
+              if (!int) {
+                return (
+                  <div 
+                    key={`placeholder-${index}`}
+                    className="border border-transparent rounded-xl h-14 opacity-0"
+                  ></div>
+                );
+              }
+              
+              const isSelected = currentAnswer?.selectedId === int.id;
+              const isCorrect = currentAnswer?.correctId === int.id;
+              const showResult = !!currentAnswer;
+              
+              let btnClass = "border rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden h-14 flex items-center justify-center";
+              
+              if (showResult) {
+                if (isCorrect) {
+                  btnClass += " bg-green-600 border-green-500 text-white shadow-sm";
+                } else if (isSelected) {
+                  btnClass += " bg-red-600 border-red-500 text-white";
+                } else {
+                  btnClass += " bg-white border-zinc-200 text-black opacity-100";
+                }
+              } else {
+                btnClass += " bg-black border-zinc-800 text-zinc-300 hover:bg-zinc-800 active:scale-95 active:bg-white active:text-black";
+              }
+
+              return (
+                <button
+                  key={int.id}
+                  onClick={() => {
+                    playOptionSound(int);
+                    handleAnswer(int.id);
+                  }}
+                  className={btnClass}
+                >
+                  {int.name}
+                </button>
+              );
+            });
+          })()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main App
+export default function App() {
+  const [view, setView] = useState('HOME'); 
+  // ... 其他状态和逻辑保持不变 ...
+} Main App
 export default function App() {
   const [view, setView] = useState('HOME'); 
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
