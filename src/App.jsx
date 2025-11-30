@@ -849,7 +849,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
       </div>
 
       {/* --- AREA D: BOTTOM (Controls) - Fixed Panel (与中间区域保持5px距离) --- */}
-      <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] mt-[5px]">
+      <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] mt-[5px] safe-area-bottom">
         
         {/* Control Row */}
         <div className="flex gap-2 mb-4">
@@ -1198,4 +1198,3 @@ export default function App() {
     </div>
   );
 }
-
