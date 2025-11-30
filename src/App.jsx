@@ -836,6 +836,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
 
       {/* --- AREA C: MIDDLE (Piano Only) - Centered --- */}
       // --- AREA C: MIDDLE (Piano Only) - Centered ---
+// --- AREA C: MIDDLE (Piano Only) - Centered ---
 <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4 mt-[5px]">
   {/* Piano Visualization Container - Centered */}
   <div className="w-full flex flex-col items-center relative">
@@ -943,7 +944,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
       });
     })()}
   </div>
-</div>// Main App
+</div> Main App
 export default function App() {
   const [view, setView] = useState('HOME'); 
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
