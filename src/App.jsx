@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'; 
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Menu, Play, Settings, RotateCcw, Clock, 
   ChevronLeft, ChevronRight, Check, X, Trophy, Activity, 
@@ -27,9 +27,9 @@ const ALL_INTERVALS = [
 ];
 
 const INSTRUMENTS = {
-  piano: { name: 'Piano', id: 'acoustic_grand_piano', path: '/audio/acoustic_grand_piano-mp3' },
-  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon', path: '/audio/acoustic_guitar_nylon-mp3' },
-  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel', path: '/audio/acoustic_guitar_steel-mp3' },
+  piano: { name: 'Piano', id: 'acoustic_grand_piano', path: '/audio/acoustic_grand_piano-mp3' }, // Updated path
+  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon', path: '/audio/acoustic_guitar_nylon-mp3' }, // Assuming similar path structure
+  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel', path: '/audio/acoustic_guitar_steel-mp3' }, // Assuming similar path structure
 };
 
 // --- 2. 音频引擎 (Audio Engine) ---
@@ -40,8 +40,9 @@ const AudioEngine = {
   loaded: false,
   loadingPromise: null,
   currentInstrument: 'piano',
-  onStateChangeCallback: null,
+  onStateChangeCallback: null, // Callback for UI updates on state change
 
+  // Updated midiToNoteName to match likely file naming (e.g., "A4.mp3")
   midiToNoteName(midi) {
     const notes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
     const octave = Math.floor(midi / 12) - 1;
@@ -56,15 +57,17 @@ const AudioEngine = {
       this.gainNode.connect(this.ctx.destination);
       this.gainNode.gain.value = 0.8;
 
+      // Listen for state changes
       this.ctx.onstatechange = () => {
           console.log(`AudioContext state changed to: ${this.ctx.state}`);
           if (this.onStateChangeCallback) {
               this.onStateChangeCallback(this.ctx.state);
           }
+          // Re-init if closed unexpectedly (preemption)
           if (this.ctx.state === 'closed') {
               console.warn("AudioContext closed unexpectedly. Re-initializing...");
-              this.ctx = null;
-              this.init();
+              this.ctx = null; // Clear old context
+              this.init(); // Re-init
           }
       };
     }
@@ -83,14 +86,16 @@ const AudioEngine = {
     return this.loadingPromise;
   },
   
+  // Helper to register UI callback
   setOnStateChange(callback) {
       this.onStateChangeCallback = callback;
   },
 
   async loadSamples(instrumentId = 'piano') {
     this.currentInstrument = instrumentId;
+    // Load more keys for better quality if local, or stick to these for efficiency
     const baseMidis = [36, 48, 60, 72, 84]; 
-    const instPath = INSTRUMENTS[instrumentId].path;
+    const instPath = INSTRUMENTS[instrumentId].path; // Use local path
 
     console.log(`Loading samples for ${instrumentId} from ${instPath}...`);
 
@@ -102,6 +107,7 @@ const AudioEngine = {
       if (this.buffers[instrumentId][midi]) return;
 
       const noteName = this.midiToNoteName(midi);
+      // Construct local URL. Assuming files are named like "C4.mp3" inside the folder
       const url = `${instPath}/${noteName}.mp3`; 
 
       try {
@@ -146,14 +152,15 @@ const AudioEngine = {
   },
 
   async playTone(midi, startTime, duration) {
-    if (!this.ctx) await this.init();
+    if (!this.ctx) await this.init(); // Ensure ctx exists
     
+    // Force resume if suspended (Crucial for iOS)
     if (this.ctx.state === 'suspended') {
         try {
             await this.ctx.resume();
         } catch (e) {
             console.error("Failed to resume context during playTone:", e);
-            return;
+            return; // Stop if we can't play
         }
     }
 
@@ -192,12 +199,14 @@ const AudioEngine = {
   async playNotes(notes, mode, direction) { 
     if (!this.ctx) await this.init();
 
+    // 1. State Check & Forced Resume
     if (this.ctx.state === 'suspended') {
         try {
             await this.ctx.resume();
             console.log("AudioContext resumed successfully.");
         } catch (e) {
             console.error("Could not resume AudioContext:", e);
+            // You might want to trigger a UI alert here via a callback
             return;
         }
     }
@@ -283,7 +292,7 @@ const TimerDisplay = ({ startTime, stoppedTime, isCorrect }) => {
 // --- 动画组件 ---
 const MagneticLetter = ({ char }) => {
   return (
-    <span className="inline-block transition-all duration-300 hover:-translate-y-2 hover:rotate-6 hover:scale-125 hover:text-indigo-600 origin-bottom cursor-default select-none text-black">
+    <span className="inline-block transition-all duration-300 hover:-translate-y-2 hover:rotate-6 hover:scale-125 hover:text-indigo-600 origin-bottom cursor-default select-none">
       {char}
     </span>
   );
@@ -510,8 +519,8 @@ const RightPanel = ({ isOpen, onClose, config, setConfig }) => {
                                     className={`py-2.5 rounded-lg border text-xs font-bold transition-all
                                       ${isSelected 
                                         ? 'bg-white text-black border-white shadow-lg' 
-                                        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-800'}
-                                      `}
+                                        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-800'
+                                      }`}
                                  >
                                     {opt.label}
                                  </button>
@@ -559,7 +568,7 @@ const RightPanel = ({ isOpen, onClose, config, setConfig }) => {
 // --- 6. 页面组件 ---
 
 const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, setIsLeftPanelOpen, setIsRightPanelOpen }) => (
-    <div className="flex flex-col h-full w-full bg-black overflow-hidden relative p-6 pt-14 pb-8 safe-area-inset">
+    <div className="flex flex-col h-full w-full bg-black overflow-hidden relative p-6 pt-14 pb-8">
         {/* Top Bar */}
         <div className="flex justify-between items-center mb-8 flex-none">
             <button onClick={() => setIsLeftPanelOpen(true)} className="text-zinc-400 hover:text-white transition-colors p-2 -ml-2">
@@ -574,49 +583,47 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
         <div className="flex-1 flex flex-col min-h-0 gap-4 pb-6 overflow-y-auto custom-scrollbar">
             
             {/* 1. Main Start Card (Top) - Horizontal Layout with Interactive Text */}
-            <div
-    className="flex-[1.5] w-full bg-white rounded-[2.5rem] p-8 relative overflow-hidden group transition-all shrink-0 min-h-[240px] flex flex-row items-center justify-between shadow-xl"
->
-    {/* Background decoration */}
-    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-zinc-100 to-transparent rounded-bl-full opacity-70 pointer-events-none"></div>
-    
-    {/* Left Side: Title & Subtitle */}
-    <div className="flex flex-col justify-center items-start h-full z-10 space-y-4 w-full">
-         <div className="text-left">
-            {/* Animated EAR PRO Title with Magnetic Letters */}
-            <div className="text-5xl font-black tracking-tighter leading-[0.9] mb-2 flex flex-col items-start text-black">
-                <div className="flex">
-                    <MagneticLetter char="E" />
-                    <MagneticLetter char="A" />
-                    <MagneticLetter char="R" />
+            <button 
+                onClick={() => startSession('NEW')}
+                className="flex-[1.5] w-full bg-white rounded-[2.5rem] p-8 relative overflow-hidden group transition-all active:scale-[0.98] shrink-0 min-h-[240px] flex flex-row items-center justify-between shadow-xl"
+            >
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-zinc-100 to-transparent rounded-bl-full opacity-70 pointer-events-none"></div>
+                
+                {/* Left Side: Title & Subtitle */}
+                <div className="flex flex-col justify-center items-start h-full z-10 space-y-4 w-full">
+                     <div className="text-left">
+                        {/* Animated EAR PRO Title with Magnetic Letters */}
+                        <div className="text-5xl font-black tracking-tighter leading-[0.9] mb-2 flex flex-col items-start">
+                            <div className="flex">
+                                <MagneticLetter char="E" />
+                                <MagneticLetter char="A" />
+                                <MagneticLetter char="R" />
+                            </div>
+                            <div className="flex">
+                                <MagneticLetter char="P" />
+                                <MagneticLetter char="R" />
+                                <MagneticLetter char="O" />
+                            </div>
+                        </div>
+                        
+                        {/* Animated Subtitle using InteractiveText */}
+                        <div className="text-sm font-bold text-zinc-500 tracking-wide uppercase border-l-2 border-black pl-3 py-0.5">
+                            <InteractiveText text="Professional" baseColor="text-zinc-500" />
+                            <div className="h-0.5"></div>
+                            <InteractiveText text="Ear Training" baseColor="text-zinc-500" />
+                        </div>
+                    </div>
                 </div>
-                <div className="flex">
-                    <MagneticLetter char="P" />
-                    <MagneticLetter char="R" />
-                    <MagneticLetter char="O" />
-                </div>
-            </div>
-            
-            {/* Animated Subtitle using InteractiveText */}
-            <div className="text-sm font-bold text-zinc-500 tracking-wide uppercase border-l-2 border-black pl-3 py-0.5">
-                <InteractiveText text="Professional" baseColor="text-zinc-500" />
-                <div className="h-0.5"></div>
-                <InteractiveText text="Ear Training" baseColor="text-zinc-500" />
-            </div>
-        </div>
-    </div>
 
-    {/* Right Side: Big Play Button */}
-    <div className="flex flex-col justify-center items-center z-10 h-full pl-4">
-        <button 
-            onClick={() => startSession('NEW')}
-            className="w-24 h-24 bg-black rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform duration-300"
-        >
-            <Play className="text-white ml-1" size={40} fill="white" />
-        </button>
-        <span className="text-zinc-900 font-bold text-xs uppercase tracking-widest mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Start</span>
-    </div>
-</div>
+                {/* Right Side: Big Play Button */}
+                <div className="flex flex-col justify-center items-center z-10 h-full pl-4">
+                     <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                        <Play className="text-white ml-1" size={40} fill="white" />
+                    </div>
+                    <span className="text-zinc-900 font-bold text-xs uppercase tracking-widest mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Start</span>
+                </div>
+            </button>
 
             {/* 2. Bottom Row: Mistakes & Slow - Side by Side */}
             <div className="flex-1 grid grid-cols-2 gap-4 min-h-[140px] shrink-0">
@@ -657,274 +664,242 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
 );
 
 const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, firstPlayDone, currentAnswer, config, playCurrentQuestion, handleAnswer, nextQuestion, setView, goBack }) => {
-  if (!queue || queue.length === 0 || currentIndex >= queue.length) {
+    const q = queue[currentIndex];
+    const scrollRef = useRef(null);
+    
+    // Auto-scroll logic
+    useEffect(() => {
+        if (scrollRef.current) {
+            const minNote = Math.min(...q.notes);
+            const noteOffset = (minNote - config.rangeMin); 
+            const scrollPos = Math.max(0, (noteOffset * 40) - 120); 
+            
+            scrollRef.current.scrollTo({
+                left: scrollPos,
+                behavior: 'smooth'
+            });
+        }
+    }, [q, config.rangeMin]);
+
+    // 监听 visibilitychange，从后台切回来时尝试恢复 AudioContext
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
+                AudioEngine.ctx.resume().then(() => {
+                    console.log('AudioContext resumed on visibility change');
+                }).catch(e => console.warn(e));
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+
+    const playOptionSound = (interval) => {
+       const notes = [q.root, q.root + interval.semitones];
+       const mode = q.direction === 'harmonic' ? 'harmonic' : 'melodic';
+       AudioEngine.playNotes(notes, mode, q.direction);
+    };
+
+    const renderPiano = () => {
+       const centerMidi = q.root;
+       const minNote = Math.min(...q.notes);
+       const maxNote = Math.max(...q.notes);
+       
+       let startMidi = Math.min(minNote - 5, centerMidi - 7);
+       let endMidi = Math.max(maxNote + 5, centerMidi + 7);
+       
+       startMidi = Math.max(0, startMidi);
+       endMidi = Math.min(127, endMidi);
+
+       const keys = [];
+       for (let i = startMidi; i <= endMidi; i++) {
+         keys.push(i);
+       }
+
+       return (
+          <div className="flex justify-center items-start h-72 relative select-none rounded-xl bg-black border border-zinc-800">
+             {keys.map((midi) => {
+                const noteName = NOTE_NAMES[midi % 12];
+                const isBlack = noteName.includes('#');
+                if (isBlack) return null; 
+                
+                const nextMidi = midi + 1;
+                const nextNoteName = NOTE_NAMES[nextMidi % 12];
+                const hasBlackNext = nextNoteName.includes('#') && nextMidi <= endMidi;
+
+                const isRoot = currentAnswer && q.notes.includes(midi) && midi === q.notes[0];
+                const isTarget = currentAnswer && q.notes.includes(midi) && midi !== q.notes[0];
+
+                const showLabel = !!currentAnswer; 
+                const labelText = `${noteName}${Math.floor(midi/12)-1}`;
+
+                return (
+                   <div key={midi} className="relative flex-shrink-0">
+                      {/* White Key */}
+                      <div className={`
+                          w-10 h-72 border-l border-b-[8px] border-r border-zinc-400/50 bg-gradient-to-b from-gray-100 to-white rounded-b-[4px] flex items-end justify-center pb-6 transition-all duration-75
+                          ${isRoot ? '!bg-indigo-500 !from-indigo-500 !to-indigo-600 !border-indigo-800 shadow-[0_0_15px_rgba(99,102,241,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-indigo-700' : ''}
+                          ${isTarget ? '!bg-sky-400 !from-sky-400 !to-sky-500 !border-sky-600 shadow-[0_0_15px_rgba(56,189,248,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-sky-600' : ''}
+                          active:scale-[0.99]
+                      `}>
+                         {showLabel && (
+                            <span className={`text-[10px] font-bold mb-2 select-none z-50 ${isRoot || isTarget ? 'text-white' : 'text-black/50'}`}>
+                               {labelText}
+                            </span>
+                         )}
+                      </div>
+                      
+                      {/* Black Key */}
+                      {hasBlackNext && (
+                         <div className={`
+                            absolute -right-3 top-0 w-6 h-48 z-20 rounded-b-[3px] 
+                            bg-gradient-to-b from-zinc-900 via-zinc-800 to-black
+                            border-x border-b-[8px] border-zinc-950 shadow-md
+                            transition-all duration-75
+                            ${currentAnswer && q.notes.includes(nextMidi) 
+                               ? (q.notes[0] === nextMidi 
+                                   ? '!bg-indigo-700 !from-indigo-600 !to-indigo-900 !border-indigo-950 shadow-[0_0_15px_rgba(99,102,241,0.6)] translate-y-[2px] border-b-[3px]' 
+                                   : '!bg-sky-600 !from-sky-500 !to-sky-800 !border-sky-950 shadow-[0_0_15px_rgba(56,189,248,0.6)] translate-y-[2px] border-b-[3px]')
+                               : ''}
+                         `}>
+                            <div className="w-full h-4 bg-white/10 rounded-t-[3px] opacity-50"></div>
+                         </div>
+                      )}
+                   </div>
+                )
+             })}
+          </div>
+       )
+    };
+
     return (
-      <div className="flex flex-col h-screen w-full bg-black items-center justify-center">
-        <div className="text-white text-lg">加载中...</div>
-        <button onClick={goBack} className="mt-4 px-4 py-2 bg-white text-black rounded">
-          返回首页
-        </button>
+      <div className="flex flex-col h-screen w-full bg-black overflow-hidden">
+         
+         {/* --- AREA 1: TOP (Header & Info) - Fixed --- */}
+         <div className="flex-none flex justify-between items-center px-6 pt-14 pb-4 z-30 bg-black">
+            {/* Left: Back Button */}
+            <div className="w-20 flex justify-start">
+                <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white active:bg-zinc-800 transition-colors">
+                    <ChevronLeft size={20} />
+                </button>
+            </div>
+
+            {/* Center: Feedback & Timer */}
+            <div className="flex-1 flex justify-center items-center gap-3">
+                {/* Feedback (Left of time) */}
+                {currentAnswer ? (
+                   <div className={`flex items-center gap-1.5 animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
+                       <span className="text-xl font-bold">
+                           {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
+                       </span>
+                       {/* Vertical line */}
+                       <div className="w-px h-5 bg-zinc-800 mx-2"></div>
+                   </div>
+                ) : (
+                   <div className="flex items-center gap-2 text-zinc-400 text-xl font-bold animate-in fade-in">
+                      <span>仔细听</span>
+                      <div className="w-px h-5 bg-zinc-800 mx-2"></div>
+                   </div>
+                )}
+                
+                {/* Timer */}
+                <TimerDisplay startTime={timerStart} stoppedTime={responseTime} isCorrect={currentAnswer?.isCorrect} />
+            </div>
+
+            {/* Right: Progress (Fixed Position) */}
+            <div className="w-20 flex justify-end items-center">
+                <span className="text-lg font-mono font-bold text-white leading-none">
+                    {currentIndex + 1}<span className="text-zinc-600 text-sm">/{queue.length}</span>
+                </span>
+            </div>
+         </div>
+
+         {/* --- AREA 2: MIDDLE (Piano Only) - Centered --- */}
+         <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4">
+            {/* Piano Visualization Container - Centered */}
+            <div className="w-full flex flex-col items-center">
+               <div 
+                  className="w-full max-w-md overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth snap-x pb-2"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+               >
+                  <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+                  {renderPiano()}
+               </div>
+            </div>
+         </div>
+
+         {/* --- AREA 3: BOTTOM (Controls) - Fixed Panel --- */}
+         <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-8 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+            
+            {/* Control Row */}
+            <div className="flex gap-2 mb-3">
+               <button 
+                  onClick={playCurrentQuestion}
+                  disabled={gameState === 'PLAYING'}
+                  className={`h-10 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-xs
+                     ${currentAnswer 
+                        ? 'flex-1 bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700' 
+                        : 'w-full bg-white text-black shadow-sm hover:bg-zinc-100'}
+                     active:scale-95
+                  `}
+               >
+                  {gameState === 'PLAYING' 
+                     ? <Activity className="animate-pulse" size={16} /> 
+                     : (currentAnswer ? <RefreshCw size={14} /> : <Play fill="currentColor" size={16} />)
+                  }
+                  {currentAnswer ? 'Replay' : 'Play Sound'}
+               </button>
+
+               {currentAnswer && (
+                   <button 
+                       onClick={nextQuestion}
+                       className="flex-[2] h-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4"
+                   >
+                       Next <ChevronRight size={18} />
+                   </button>
+               )}
+            </div>
+
+            {/* Options Grid */}
+            <div className="grid grid-cols-2 gap-2">
+                {q.options.map(int => {
+                    const isSelected = currentAnswer?.selectedId === int.id;
+                    const isCorrect = currentAnswer?.correctId === int.id;
+                    const showResult = !!currentAnswer;
+                    
+                    let btnClass = "border rounded-xl font-bold text-xs transition-all duration-200 relative overflow-hidden h-12";
+                    
+                    if (showResult) {
+                        if (isCorrect) {
+                            btnClass += " bg-green-600 border-green-500 text-white shadow-sm";
+                        } else if (isSelected) {
+                            btnClass += " bg-red-600 border-red-500 text-white";
+                        } else {
+                            // The "rest" of the options -> White Background, Black Text
+                            btnClass += " bg-white border-zinc-200 text-black opacity-100";
+                        }
+                    } else {
+                        // Default state before answering
+                        btnClass += " bg-black border-zinc-800 text-zinc-300 hover:bg-zinc-800 active:scale-95 active:bg-white active:text-black";
+                    }
+
+                    return (
+                        <button
+                            key={int.id}
+                            onClick={() => {
+                                playOptionSound(int);
+                                handleAnswer(int.id);
+                            }}
+                            className={btnClass}
+                        >
+                            {int.name}
+                        </button>
+                    );
+                })}
+            </div>
+         </div>
       </div>
     );
-  }
-  
-  const q = queue[currentIndex];
-  const scrollRef = useRef(null);
-  
-  useEffect(() => {
-    if (scrollRef.current) {
-      const minNote = Math.min(...q.notes);
-      const noteOffset = (minNote - config.rangeMin); 
-      const scrollPos = Math.max(0, (noteOffset * 40) - 120); 
-      
-      scrollRef.current.scrollTo({
-        left: scrollPos,
-        behavior: 'smooth'
-      });
-    }
-  }, [q, config.rangeMin]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
-        AudioEngine.ctx.resume().then(() => {
-          console.log('AudioContext resumed on visibility change');
-        }).catch(e => console.warn(e));
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
-
-  const playOptionSound = (interval) => {
-    const notes = [q.root, q.root + interval.semitones];
-    const mode = q.direction === 'harmonic' ? 'harmonic' : 'melodic';
-    AudioEngine.playNotes(notes, mode, q.direction);
-  };
-
-  const renderPiano = () => {
-    const centerMidi = q.root;
-    const minNote = Math.min(...q.notes);
-    const maxNote = Math.max(...q.notes);
-    
-    let startMidi = Math.min(minNote - 5, centerMidi - 7);
-    let endMidi = Math.max(maxNote + 5, centerMidi + 7);
-    
-    startMidi = Math.max(0, startMidi);
-    endMidi = Math.min(127, endMidi);
-
-    const keys = [];
-    for (let i = startMidi; i <= endMidi; i++) {
-      keys.push(i);
-    }
-
-    return (
-      <div className="flex justify-center items-start h-72 relative select-none rounded-xl bg-black border border-zinc-800">
-        {keys.map((midi) => {
-          const noteName = NOTE_NAMES[midi % 12];
-          const isBlack = noteName.includes('#');
-          if (isBlack) return null; 
-          
-          const nextMidi = midi + 1;
-          const nextNoteName = NOTE_NAMES[nextMidi % 12];
-          const hasBlackNext = nextNoteName.includes('#') && nextMidi <= endMidi;
-
-          const isRoot = currentAnswer && q.notes.includes(midi) && midi === q.notes[0];
-          const isTarget = currentAnswer && q.notes.includes(midi) && midi !== q.notes[0];
-
-          const showLabel = !!currentAnswer; 
-          const labelText = `${noteName}${Math.floor(midi/12)-1}`;
-
-          return (
-            <div key={midi} className="relative flex-shrink-0">
-              {/* White Key */}
-              <div className={`
-                w-10 h-72 border-l border-b-[8px] border-r border-zinc-400/50 bg-gradient-to-b from-gray-100 to-white rounded-b-[4px] flex items-end justify-center pb-6 transition-all duration-75
-                ${isRoot ? '!bg-indigo-500 !from-indigo-500 !to-indigo-600 !border-indigo-800 shadow-[0_0_15px_rgba(99,102,241,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-indigo-700' : ''}
-                ${isTarget ? '!bg-sky-400 !from-sky-400 !to-sky-500 !border-sky-600 shadow-[0_0_15px_rgba(56,189,248,0.5)] z-10 translate-y-[2px] border-b-[4px] !border-b-sky-600' : ''}
-                active:scale-[0.99]
-              `}>
-                {showLabel && (
-                  <span className={`text-[10px] font-bold mb-2 select-none z-50 ${isRoot || isTarget ? 'text-white' : 'text-black/50'}`}>
-                    {labelText}
-                  </span>
-                )}
-              </div>
-              
-              {/* Black Key */}
-              {hasBlackNext && (
-                <div className={`
-                  absolute -right-3 top-0 w-6 h-48 z-20 rounded-b-[3px] 
-                  bg-gradient-to-b from-zinc-900 via-zinc-800 to-black
-                  border-x border-b-[8px] border-zinc-950 shadow-md
-                  transition-all duration-75
-                  ${currentAnswer && q.notes.includes(nextMidi) 
-                    ? (q.notes[0] === nextMidi 
-                      ? '!bg-indigo-700 !from-indigo-600 !to-indigo-900 !border-indigo-950 shadow-[0_0_15px_rgba(99,102,241,0.6)] translate-y-[2px] border-b-[3px]' 
-                      : '!bg-sky-600 !from-sky-500 !to-sky-800 !border-sky-950 shadow-[0_0_15px_rgba(56,189,248,0.6)] translate-y-[2px] border-b-[3px]')
-                    : ''}
-                `}>
-                  <div className="w-full h-4 bg-white/10 rounded-t-[3px] opacity-50"></div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    )
-  };
-
-  return (
-    <div className="flex flex-col h-screen w-full bg-black overflow-hidden">
-      
-      {/* --- AREA A: TOP (Header) - Fixed --- */}
-      <div className="flex-none flex justify-between items-center px-4 pt-4 pb-2 z-30 bg-black">
-        {/* Left: Back Button */}
-        <div className="w-16 flex justify-start">
-          <button onClick={goBack} className="w-10 h-10 flex items-center justify-center rounded-full bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white active:bg-zinc-800 transition-colors">
-            <ChevronLeft className="text-2xl" />
-          </button>
-        </div>
-
-        {/* Right: Progress */}
-        <div className="w-16 flex justify-end items-center">
-          <span className="text-2xl md:text-3xl lg:text-4xl font-mono font-bold text-white leading-none">
-            {currentIndex + 1}<span className="text-zinc-600 text-xl md:text-2xl lg:text-3xl">/{queue.length}</span>
-          </span>
-        </div>
-      </div>
-
-      {/* --- AREA B: 信息区域 - 放置仔细听和计时器 --- */}
-      <div className="flex-none flex justify-center items-center py-2 bg-black">
-        <div className="flex justify-center items-center gap-4">
-          {currentAnswer ? (
-            <div className={`flex items-center gap-2 animate-in slide-in-from-right-4 fade-in duration-300 ${currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-              <span className="text-2xl md:text-3xl lg:text-4xl font-bold">
-                {currentAnswer.isCorrect ? '回答正确' : '回答错误'}
-              </span>
-              <div className="w-px h-6 md:h-8 bg-zinc-800 mx-1 md:mx-2"></div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 text-zinc-400 text-2xl md:text-3xl lg:text-4xl font-bold animate-in fade-in">
-              <span>仔细听</span>
-              <div className="w-px h-6 md:h-8 bg-zinc-800 mx-1 md:mx-2"></div>
-            </div>
-          )}
-          
-          <div className={`font-mono text-2xl md:text-3xl lg:text-4xl font-bold tabular-nums tracking-tight leading-none ${currentAnswer ? (currentAnswer.isCorrect ? 'text-green-500' : 'text-red-500') : 'text-white'}`}> 
-            {responseTime !== null ? responseTime.toFixed(2) : (timerStart ? ((Date.now() - timerStart) / 1000).toFixed(2) : '0.00')}
-            <span className="text-base md:text-lg lg:text-xl text-zinc-600 ml-1 font-sans font-medium">s</span>
-          </div>
-        </div>
-      </div>
-
-      {/* --- AREA C: MIDDLE (Piano Only) - Centered --- */}
-      <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4 mt-[5px]">
-        {/* Piano Visualization Container - Centered */}
-        <div className="w-full flex flex-col items-center relative">
-          <div 
-            className="w-full max-w-md overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth snap-x pb-2"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            ref={scrollRef}
-          >
-            <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
-            {renderPiano()}
-            
-            {/* Play Sound Button - 绝对定位在键盘底部边缘 */}
-            <button 
-              onClick={playCurrentQuestion}
-              disabled={gameState === 'PLAYING'}
-              className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-12 px-8 rounded-t-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-sm
-                  ${currentAnswer 
-                    ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700 border-b-0' 
-                    : 'bg-white text-black shadow-sm hover:bg-zinc-100 border-t border-x border-zinc-200 border-b-0'}
-                  active:scale-95 z-50
-              `}
-              style={{ 
-                minWidth: '140px',
-                boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
-              }}
-            >
-              {gameState === 'PLAYING' 
-                ? <Activity className="animate-pulse" size={16} /> 
-                : (currentAnswer ? <RefreshCw size={14} /> : <Play fill="currentColor" size={16} />)
-              }
-              {currentAnswer ? 'Replay' : 'Play Sound'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* --- AREA D: BOTTOM (Controls) - Fixed Panel --- */}
-      <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] safe-area-bottom">
-        
-        {/* Control Row - 移除Play Sound按钮，只保留Next按钮 */}
-        <div className="flex gap-2 mb-4 justify-end">
-          {currentAnswer && (
-            <button 
-              onClick={nextQuestion}
-              className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 px-6"
-            >
-              Next <ChevronRight size={18} />
-            </button>
-          )}
-        </div>
-
-        {/* Options Grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {(() => {
-            const displayOptions = q.options.slice(0, 4);
-            
-            while (displayOptions.length < 4) {
-              displayOptions.push(null);
-            }
-            
-            return displayOptions.map((int, index) => {
-              if (!int) {
-                return (
-                  <div 
-                    key={`placeholder-${index}`}
-                    className="border border-transparent rounded-xl h-14 opacity-0"
-                  ></div>
-                );
-              }
-              
-              const isSelected = currentAnswer?.selectedId === int.id;
-              const isCorrect = currentAnswer?.correctId === int.id;
-              const showResult = !!currentAnswer;
-              
-              let btnClass = "border rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden h-14 flex items-center justify-center";
-              
-              if (showResult) {
-                if (isCorrect) {
-                  btnClass += " bg-green-600 border-green-500 text-white shadow-sm";
-                } else if (isSelected) {
-                  btnClass += " bg-red-600 border-red-500 text-white";
-                } else {
-                  btnClass += " bg-white border-zinc-200 text-black opacity-100";
-                }
-              } else {
-                btnClass += " bg-black border-zinc-800 text-zinc-300 hover:bg-zinc-800 active:scale-95 active:bg-white active:text-black";
-              }
-
-              return (
-                <button
-                  key={int.id}
-                  onClick={() => {
-                    playOptionSound(int);
-                    handleAnswer(int.id);
-                  }}
-                  className={btnClass}
-                >
-                  {int.name}
-                </button>
-              );
-            });
-          })()}
-        </div>
-      </div>
-    </div>
-  );
 };
 
 // Main App
@@ -957,20 +932,21 @@ export default function App() {
   const playbackTimeoutRef = useRef(null);
 
   const generateQuestionOptions = (correctInterval, pool) => {
-    let effectivePool = pool;
-    if (!pool.find(i => i.id === correctInterval.id)) {
-      effectivePool = [...pool, correctInterval];
-    }
-    
-    if (effectivePool.length <= 4) {
-      return effectivePool.sort((a, b) => a.semitones - b.semitones);
-    }
-    
-    const otherIntervals = effectivePool.filter(i => i.id !== correctInterval.id);
-    const shuffledDistractors = [...otherIntervals].sort(() => 0.5 - Math.random()).slice(0, 3);
-    
-    const options = [correctInterval, ...shuffledDistractors];
-    return options.sort((a, b) => a.semitones - b.semitones);
+      let effectivePool = pool;
+      if (!pool.find(i => i.id === correctInterval.id)) {
+          effectivePool = [...pool, correctInterval];
+      }
+      
+      if (effectivePool.length <= 4) {
+          return effectivePool.sort((a, b) => a.semitones - b.semitones);
+      }
+      
+      const distractors = effectivePool.filter(i => i.id !== correctInterval.id)
+                              .sort(() => 0.5 - Math.random())
+                              .slice(0, 3);
+      
+      const options = [correctInterval, ...distractors];
+      return options.sort((a, b) => a.semitones - b.semitones);
   };
 
   const startSession = async (mode = 'NEW', customQueue = null) => {
@@ -978,7 +954,7 @@ export default function App() {
     
     await AudioEngine.init();
     if (config.instrument && config.instrument !== 'piano') {
-      await AudioEngine.loadSamples(config.instrument);
+        await AudioEngine.loadSamples(config.instrument);
     }
     
     const availableIntervals = ALL_INTERVALS.filter(int => config.selectedIntervals.includes(int.id));
@@ -1010,14 +986,11 @@ export default function App() {
         });
       }
     } else if (mode === 'MISTAKES') {
-      newQueue = customQueue.map(q => {
-        const options = generateQuestionOptions(q.interval, availableIntervals);
-        return {
+      newQueue = customQueue.map(q => ({
           ...q,
           id: Date.now() + Math.random(), 
-          options: options
-        };
-      }).sort(() => Math.random() - 0.5);
+          options: generateQuestionOptions(q.interval, availableIntervals)
+      })).sort(() => Math.random() - 0.5);
     }
 
     if (newQueue.length === 0) return alert("没有题目可供练习");
@@ -1032,9 +1005,9 @@ export default function App() {
     setView('GAME_INIT');
 
     try {
-      await AudioEngine.init(); 
+        await AudioEngine.init(); 
     } catch(e) {
-      console.error("Audio init error", e);
+        console.error("Audio init error", e);
     }
 
     setView('GAME');
@@ -1061,6 +1034,7 @@ export default function App() {
     if (playbackTimeoutRef.current) clearTimeout(playbackTimeoutRef.current);
     playbackTimeoutRef.current = setTimeout(() => {
       setGameState('WAITING_ANSWER');
+      // Only start timer if it hasn't started yet for this question
       if (!firstPlayDone) {
         setFirstPlayDone(true);
         setTimerStart(Date.now());
@@ -1073,6 +1047,7 @@ export default function App() {
     if (currentAnswer) return; 
     
     const now = Date.now();
+    // If timer hasn't started (user answered during playback or before start), handle gracefully
     const timeTaken = timerStart ? (now - timerStart) / 1000 : 0;
     setResponseTime(timeTaken);
 
@@ -1111,18 +1086,17 @@ export default function App() {
       setResponseTime(null);
       setCurrentAnswer(null);
       setTimerStart(null);
+      // Note: playCurrentQuestion will NOT be called automatically due to useEffect removal
     } else {
       setView('SUMMARY');
     }
   };
 
   return (
-    <div className="w-full h-screen bg-black overflow-hidden font-sans selection:bg-blue-500 selection:text-white max-w-md mx-auto relative shadow-2xl safe-area-inset">
-      {/* 安全区域覆盖层 */}
-      <div className="safe-area-bottom-overlay"></div>
-      
-      {view === 'HOME' && <HomeScreen mistakes={mistakes} slowResponses={slowResponses} history={history} startSession={startSession} setView={setView} setIsLeftPanelOpen={setIsLeftPanelOpen} setIsRightPanelOpen={setIsRightPanelOpen} />}
-      {view === 'GAME_INIT' && (
+    <div className="w-full h-screen bg-black overflow-hidden font-sans selection:bg-blue-500 selection:text-white max-w-md mx-auto relative shadow-2xl">
+       {view === 'HOME' && <HomeScreen mistakes={mistakes} slowResponses={slowResponses} history={history} startSession={startSession} setView={setView} setIsLeftPanelOpen={setIsLeftPanelOpen} setIsRightPanelOpen={setIsRightPanelOpen} />}
+       {view === 'SETTINGS' && <SettingsScreen config={config} setConfig={setConfig} setView={setView} startSession={startSession} />}
+       {view === 'GAME_INIT' && (
           <div className="h-full flex items-center justify-center text-white flex-col gap-4">
             <Loader2 className="animate-spin text-blue-500" size={48} />
             <p className="text-sm text-zinc-400">Loading Piano Samples...</p>
@@ -1185,4 +1159,6 @@ export default function App() {
        <RightPanel isOpen={isRightPanelOpen} onClose={() => setIsRightPanelOpen(false)} config={config} setConfig={setConfig} />
     </div>
   );
+
 }
+
