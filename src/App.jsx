@@ -835,91 +835,115 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
       </div>
 
       {/* --- AREA C: MIDDLE (Piano Only) - Centered --- */}
-      <div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4 mt-[5px]">
-        {/* Piano Visualization Container - Centered */}
-        <div className="w-full flex flex-col items-center">
-          <div 
-            className="w-full max-w-md overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth snap-x pb-2"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
-            {renderPiano()}
-          </div>
-        </div>
-      </div>
-
-      {/* --- AREA D: BOTTOM (Controls) - Fixed Panel (与中间区域保持5px距离) --- */}
-      <div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] mt-[5px] safe-area-bottom">
-        
-        {/* Control Row */}
-        <div className="flex gap-2 mb-4">
-          <button 
-            onClick={playCurrentQuestion}
-            disabled={gameState === 'PLAYING'}
-            className={`h-12 md:h-14 lg:h-16 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-base md:text-lg lg:text-xl flex-1
-              ${currentAnswer 
-                ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700' 
-                : 'bg-white text-black shadow-sm hover:bg-zinc-100'}
-              active:scale-95
-            `}
-          >
-            {gameState === 'PLAYING' 
-              ? <Activity className="animate-pulse text-lg md:text-xl lg:text-2xl" /> 
-              : (currentAnswer ? <RefreshCw className="text-base md:text-lg lg:text-xl" /> : <Play fill="currentColor" className="text-lg md:text-xl lg:text-2xl" />)
-            }
-            {currentAnswer ? 'Replay' : 'Play Sound'}
-          </button>
-
-          {currentAnswer && (
-            <button 
-              onClick={nextQuestion}
-              className="h-12 md:h-14 lg:h-16 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base md:text-lg lg:text-xl flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 px-6"
-            >
-              Next <ChevronRight className="text-lg md:text-xl lg:text-2xl" />
-            </button>
-          )}
-        </div>
-
-        {/* Options Grid - 动态显示选项 (使用响应式字体大小) */}
-        <div className={`grid gap-3 ${q.options.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          {q.options.map(int => {
-            const isSelected = currentAnswer?.selectedId === int.id;
-            const isCorrect = currentAnswer?.correctId === int.id;
-            const showResult = !!currentAnswer;
-            
-            let btnClass = "border rounded-xl font-bold text-base md:text-lg lg:text-xl transition-all duration-200 relative overflow-hidden h-14 md:h-16 lg:h-18 flex items-center justify-center";
-            
-            if (showResult) {
-              if (isCorrect) {
-                btnClass += " bg-green-600 border-green-500 text-white shadow-sm";
-              } else if (isSelected) {
-                btnClass += " bg-red-600 border-red-500 text-white";
-              } else {
-                // The "rest" of the options -> White Background, Black Text
-                btnClass += " bg-white border-zinc-200 text-black opacity-100";
-              }
-            } else {
-              btnClass += " bg-black border-zinc-800 text-zinc-300 hover:bg-zinc-800 active:scale-95 active:bg-white active:text-black";
-            }
-
-            return (
-              <button
-                key={int.id}
-                onClick={() => {
-                  playOptionSound(int);
-                  handleAnswer(int.id);
-                }}
-                className={btnClass}
-              >
-                {int.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      // --- AREA C: MIDDLE (Piano Only) - Centered ---
+<div className="flex-1 flex flex-col justify-center items-center w-full min-h-0 relative z-0 bg-black px-4 mt-[5px]">
+  {/* Piano Visualization Container - Centered */}
+  <div className="w-full flex flex-col items-center relative">
+    <div 
+      className="w-full max-w-md overflow-x-auto overflow-y-hidden no-scrollbar scroll-smooth snap-x pb-2"
+      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      ref={scrollRef}
+    >
+      <style>{`.no-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+      {renderPiano()}
+      
+      {/* Play Sound Button - 绝对定位在键盘底部边缘 */}
+      <button 
+        onClick={playCurrentQuestion}
+        disabled={gameState === 'PLAYING'}
+        className={`absolute bottom-0 left-1/2 transform -translate-x-1/2 h-12 px-8 rounded-t-xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-sm
+            ${currentAnswer 
+              ? 'bg-zinc-800 text-white hover:bg-zinc-700 border border-zinc-700 border-b-0' 
+              : 'bg-white text-black shadow-sm hover:bg-zinc-100 border-t border-x border-zinc-200 border-b-0'}
+            active:scale-95 z-50
+        `}
+        style={{ 
+          minWidth: '140px',
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.1)'
+        }}
+      >
+        {gameState === 'PLAYING' 
+          ? <Activity className="animate-pulse" size={16} /> 
+          : (currentAnswer ? <RefreshCw size={14} /> : <Play fill="currentColor" size={16} />)
+        }
+        {currentAnswer ? 'Replay' : 'Play Sound'}
+      </button>
     </div>
-  );
-};// Main App
+  </div>
+</div>
+
+// --- AREA D: BOTTOM (Controls) - Fixed Panel ---
+<div className="flex-none bg-zinc-950 border-t border-zinc-900 p-4 pb-6 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] safe-area-bottom">
+  
+  {/* Control Row - 移除Play Sound按钮，只保留Next按钮 */}
+  <div className="flex gap-2 mb-4 justify-end">
+    {currentAnswer && (
+      <button 
+        onClick={nextQuestion}
+        className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 animate-in fade-in slide-in-from-right-4 px-6"
+      >
+        Next <ChevronRight size={18} />
+      </button>
+    )}
+  </div>
+
+  {/* Options Grid - 保持不变 */}
+  <div className="grid grid-cols-2 gap-3">
+    {(() => {
+      // 确保选项数量不超过4个
+      const displayOptions = q.options.slice(0, 4);
+      
+      // 用null填充不足4个的位置
+      while (displayOptions.length < 4) {
+        displayOptions.push(null);
+      }
+      
+      return displayOptions.map((int, index) => {
+        if (!int) {
+          // 空位置 - 显示透明占位按钮
+          return (
+            <div 
+              key={`placeholder-${index}`}
+              className="border border-transparent rounded-xl h-14 opacity-0"
+            ></div>
+          );
+        }
+        
+        const isSelected = currentAnswer?.selectedId === int.id;
+        const isCorrect = currentAnswer?.correctId === int.id;
+        const showResult = !!currentAnswer;
+        
+        let btnClass = "border rounded-xl font-bold text-sm transition-all duration-200 relative overflow-hidden h-14 flex items-center justify-center";
+        
+        if (showResult) {
+          if (isCorrect) {
+            btnClass += " bg-green-600 border-green-500 text-white shadow-sm";
+          } else if (isSelected) {
+            btnClass += " bg-red-600 border-red-500 text-white";
+          } else {
+            // The "rest" of the options -> White Background, Black Text
+            btnClass += " bg-white border-zinc-200 text-black opacity-100";
+          }
+        } else {
+          btnClass += " bg-black border-zinc-800 text-zinc-300 hover:bg-zinc-800 active:scale-95 active:bg-white active:text-black";
+        }
+
+        return (
+          <button
+            key={int.id}
+            onClick={() => {
+              playOptionSound(int);
+              handleAnswer(int.id);
+            }}
+            className={btnClass}
+          >
+            {int.name}
+          </button>
+        );
+      });
+    })()}
+  </div>
+</div>// Main App
 export default function App() {
   const [view, setView] = useState('HOME'); 
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
@@ -948,28 +972,21 @@ export default function App() {
   
   const playbackTimeoutRef = useRef(null);
 
-  const generateQuestionOptions = (correctInterval, pool) => {
+const generateQuestionOptions = (correctInterval, pool) => {
   let effectivePool = pool;
   if (!pool.find(i => i.id === correctInterval.id)) {
     effectivePool = [...pool, correctInterval];
   }
   
-  // 使用更可靠的随机数生成
-  const getRandomItems = (array, count) => {
-    const shuffled = [...array].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
-  };
-  
   if (effectivePool.length <= 4) {
     return effectivePool.sort((a, b) => a.semitones - b.semitones);
   }
   
-  const distractors = getRandomItems(
-    effectivePool.filter(i => i.id !== correctInterval.id), 
-    3
-  );
+  // 从干扰项中随机选择3个，确保正确答案在选项中
+  const otherIntervals = effectivePool.filter(i => i.id !== correctInterval.id);
+  const shuffledDistractors = [...otherIntervals].sort(() => 0.5 - Math.random()).slice(0, 3);
   
-  const options = [correctInterval, ...distractors];
+  const options = [correctInterval, ...shuffledDistractors];
   return options.sort((a, b) => a.semitones - b.semitones);
 };
 
