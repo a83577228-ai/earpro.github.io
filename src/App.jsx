@@ -112,7 +112,7 @@ const AudioEngine = {
       if (this.buffers[instrumentId][midi]) return;
 
       const noteName = this.midiToNoteName(midi);
-      const url = `https:public/audio/acoustic_grand_piano-mp3/${soundFontId}-mp3/${noteName}.mp3`;
+      const url = `https:public/audio/${soundFontId}-mp3/${noteName}.mp3`;
 
       try {
         const response = await fetch(url);
@@ -1130,3 +1130,4 @@ export default function App() {
     </div>
   );
 }
+
