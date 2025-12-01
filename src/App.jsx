@@ -65,13 +65,13 @@ const AudioEngine = {
   currentInstrument: 'piano',
   
   sampleMap: {
-    24: 'https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C1.mp3',
-    36: 'https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C2.mp3',
-    48: 'https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C3.mp3',
-    60: 'https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C4.mp3',
-    72: 'https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C5.mp3',
-    84: 'https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C6.mp3',
-    96: 'https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C7.mp3',
+    24: 'https://public/audio/acoustic_grand_piano-mp3/C1.mp3',
+    36: 'https://public/audio/acoustic_grand_piano-mp3/C2.mp3',
+    48: 'https://public/audio/acoustic_grand_piano-mp3/C3.mp3',
+    60: 'https://public/audio/acoustic_grand_piano-mp3/C4.mp3',
+    72: 'https://public/audio/acoustic_grand_piano-mp3/C5.mp3',
+    84: 'https://public/audio/acoustic_grand_piano-mp3/C6.mp3',
+    96: 'https://public/audio/acoustic_grand_piano-mp3/C7.mp3',
   },
 
   midiToNoteName(midi) {
@@ -112,7 +112,7 @@ const AudioEngine = {
       if (this.buffers[instrumentId][midi]) return;
 
       const noteName = this.midiToNoteName(midi);
-      const url = `https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/${soundFontId}-mp3/${noteName}.mp3`;
+      const url = `https://public/audio/${acoustic_grand_piano}-mp3/${noteName}.mp3`;
 
       try {
         const response = await fetch(url);
@@ -1130,3 +1130,4 @@ export default function App() {
     </div>
   );
 }
+
