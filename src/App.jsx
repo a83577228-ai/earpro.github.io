@@ -27,9 +27,9 @@ const ALL_INTERVALS = [
 ];
 
 const INSTRUMENTS = {
-  piano: { name: 'Piano', id: 'acoustic_grand_piano', path: '/audio/acoustic_grand_piano-mp3' }, // Updated path
-  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon', path: '/audio/acoustic_guitar_nylon-mp3' }, // Assuming similar path structure
-  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel', path: '/audio/acoustic_guitar_steel-mp3' }, // Assuming similar path structure
+  piano: { name: 'Piano', id: 'acoustic_grand_piano', path: 'public/audio/acoustic_grand_piano-mp3' }, // Updated path
+  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon', path: 'public/audio/acoustic_guitar_nylon-mp3' }, // Assuming similar path structure
+  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel', path: 'public/audio/acoustic_guitar_steel-mp3' }, // Assuming similar path structure
 };
 
 // --- 2. 音频引擎 (Audio Engine) ---
@@ -1164,4 +1164,5 @@ export default function App() {
   );
 
 }
+
 
