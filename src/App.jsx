@@ -3,11 +3,34 @@ import {
   Menu, Play, Settings, RotateCcw, Clock, 
   ChevronLeft, ChevronRight, Check, X, Trophy, Activity, 
   AlertCircle, Music, BarChart3, Pause,
-  Loader2, Piano, RefreshCw, Sliders, History, BookOpen, Layout, ArrowRight,
-  Guitar, Plus, Folder, Globe, HelpCircle, Shield
+  Loader2, RefreshCw, Sliders, History, BookOpen, Layout, ArrowRight,
+  Plus, Folder, Globe, HelpCircle, Shield
 } from 'lucide-react';
 
-// --- 1. 核心常量数据 (Constants) ---
+// --- 0. 自定义图标组件 (修复 "Piano/Guitar not exported" 报错) ---
+
+const PianoIcon = ({ size = 24, className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 2H2v20h20V2z" />
+    <path d="M6 2v20" />
+    <path d="M18 2v20" />
+    <path d="M6 12h6" />
+    <path d="M18 12h-6" />
+    <path d="M10 2v10" />
+    <path d="M14 2v10" />
+  </svg>
+);
+
+const GuitarIcon = ({ size = 24, className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m11.2 11.2-7.8 7.8a2 2 0 0 0 2.8 2.8l7.8-7.8" />
+    <path d="m9.2 9.2-2.2 2.2a2 2 0 0 0 2.8 2.8l2.2-2.2" />
+    <path d="m15 10 4.7-4.7a2.1 2.1 0 0 0-3-3L12 7" />
+    <path d="M16 8 8 16" />
+  </svg>
+);
+
+// --- 1. 核心常量数据 ---
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -27,12 +50,12 @@ const ALL_INTERVALS = [
 ];
 
 const INSTRUMENTS = {
-  piano: { name: 'Piano', id: 'acoustic_grand_piano', path: 'public/audio/acoustic_grand_piano-mp3' }, // Updated path
-  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon', path: 'public/audio/acoustic_guitar_nylon-mp3' }, // Assuming similar path structure
-  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel', path: 'public/audio/acoustic_guitar_steel-mp3' }, // Assuming similar path structure
+  piano: { name: 'Piano', id: 'acoustic_grand_piano' },
+  guitar: { name: 'Guitar', id: 'acoustic_guitar_nylon' },
+  ukulele: { name: 'Ukulele', id: 'acoustic_guitar_steel' },
 };
 
-// --- 2. 音频引擎 (Audio Engine) ---
+// --- 2. 音频引擎 ---
 const AudioEngine = {
   ctx: null,
   gainNode: null,
@@ -40,9 +63,17 @@ const AudioEngine = {
   loaded: false,
   loadingPromise: null,
   currentInstrument: 'piano',
-  onStateChangeCallback: null, // Callback for UI updates on state change
+  
+  sampleMap: {
+    24: 'https://public/audio/acoustic_grand_piano-mp3/C1.mp3',
+    36: 'https://public/audio/acoustic_grand_piano-mp3/C2.mp3',
+    48: 'https://public/audio/acoustic_grand_piano-mp3/C3.mp3',
+    60: 'https://public/audio/acoustic_grand_piano-mp3/C4.mp3',
+    72: 'https://public/audio/acoustic_grand_piano-mp3/C5.mp3',
+    84: 'https://public/audio/acoustic_grand_piano-mp3/C6.mp3',
+    96: 'https://public/audio/acoustic_grand_piano-mp3/C7.mp3',
+  },
 
-  // Updated midiToNoteName to match likely file naming (e.g., "A4.mp3")
   midiToNoteName(midi) {
     const notes = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
     const octave = Math.floor(midi / 12) - 1;
@@ -55,49 +86,23 @@ const AudioEngine = {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
       this.gainNode = this.ctx.createGain();
       this.gainNode.connect(this.ctx.destination);
-      this.gainNode.gain.value = 0.8;
-
-      // Listen for state changes
-      this.ctx.onstatechange = () => {
-          console.log(`AudioContext state changed to: ${this.ctx.state}`);
-          if (this.onStateChangeCallback) {
-              this.onStateChangeCallback(this.ctx.state);
-          }
-          // Re-init if closed unexpectedly (preemption)
-          if (this.ctx.state === 'closed') {
-              console.warn("AudioContext closed unexpectedly. Re-initializing...");
-              this.ctx = null; // Clear old context
-              this.init(); // Re-init
-          }
-      };
+      this.gainNode.gain.value = 0.8; 
     }
-
     if (this.ctx.state === 'suspended') {
-      try {
-          await this.ctx.resume();
-      } catch (e) {
-          console.warn("Failed to resume AudioContext on init:", e);
-      }
+      await this.ctx.resume();
     }
-
     if ((!this.buffers['piano'] || Object.keys(this.buffers['piano']).length === 0) && !this.loadingPromise) {
         this.loadingPromise = this.loadSamples('piano');
     }
     return this.loadingPromise;
   },
-  
-  // Helper to register UI callback
-  setOnStateChange(callback) {
-      this.onStateChangeCallback = callback;
-  },
 
   async loadSamples(instrumentId = 'piano') {
     this.currentInstrument = instrumentId;
-    // Load more keys for better quality if local, or stick to these for efficiency
     const baseMidis = [36, 48, 60, 72, 84]; 
-    const instPath = INSTRUMENTS[instrumentId].path; // Use local path
+    const soundFontId = INSTRUMENTS[instrumentId].id;
 
-    console.log(`Loading samples for ${instrumentId} from ${instPath}...`);
+    console.log(`Loading samples for ${instrumentId}...`);
 
     if (!this.buffers[instrumentId]) {
         this.buffers[instrumentId] = {};
@@ -107,19 +112,18 @@ const AudioEngine = {
       if (this.buffers[instrumentId][midi]) return;
 
       const noteName = this.midiToNoteName(midi);
-      // Construct local URL. Assuming files are named like "C4.mp3" inside the folder
-      const url = `${instPath}/${noteName}.mp3`; 
+      const url = `https:public/audio/acoustic_grand_piano-mp3/${soundFontId}-mp3/${noteName}.mp3`;
 
       try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
+        if (!response.ok) throw new Error('Network response was not ok');
         const arrayBuffer = await response.arrayBuffer();
         if (this.ctx) {
             const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
             this.buffers[instrumentId][midi] = audioBuffer;
         }
       } catch (e) {
-        console.warn(`Failed to load sample for ${midi} (${instrumentId}) from ${url}`, e);
+        console.warn(`Failed to load sample for ${midi} (${instrumentId})`, e);
       }
     });
 
@@ -151,19 +155,8 @@ const AudioEngine = {
     };
   },
 
-  async playTone(midi, startTime, duration) {
-    if (!this.ctx) await this.init(); // Ensure ctx exists
-    
-    // Force resume if suspended (Crucial for iOS)
-    if (this.ctx.state === 'suspended') {
-        try {
-            await this.ctx.resume();
-        } catch (e) {
-            console.error("Failed to resume context during playTone:", e);
-            return; // Stop if we can't play
-        }
-    }
-
+  playTone(midi, startTime, duration) {
+    if (!this.ctx) return;
     const sample = this.getBestSample(midi, this.currentInstrument);
 
     if (sample && sample.buffer) {
@@ -196,22 +189,11 @@ const AudioEngine = {
     }
   },
   
-  async playNotes(notes, mode, direction) { 
-    if (!this.ctx) await this.init();
-
-    // 1. State Check & Forced Resume
-    if (this.ctx.state === 'suspended') {
-        try {
-            await this.ctx.resume();
-            console.log("AudioContext resumed successfully.");
-        } catch (e) {
-            console.error("Could not resume AudioContext:", e);
-            // You might want to trigger a UI alert here via a callback
-            return;
-        }
+  playNotes(notes, mode, direction) { 
+    if (this.ctx && this.ctx.state === 'suspended') {
+       this.ctx.resume();
     }
-
-    const now = this.ctx.currentTime;
+    const now = this.ctx ? this.ctx.currentTime : 0;
     let sequence = [...notes].sort((a, b) => a - b);
     if (direction === 'desc') sequence.reverse();
 
@@ -292,7 +274,7 @@ const TimerDisplay = ({ startTime, stoppedTime, isCorrect }) => {
 // --- 动画组件 ---
 const MagneticLetter = ({ char }) => {
   return (
-    <span className="inline-block transition-all duration-300 hover:-translate-y-2 hover:rotate-6 hover:scale-125 hover:text-indigo-600 origin-bottom cursor-default select-none text-black">
+    <span className="inline-block transition-all duration-300 hover:-translate-y-2 hover:rotate-6 hover:scale-125 hover:text-indigo-600 origin-bottom cursor-default select-none">
       {char}
     </span>
   );
@@ -434,32 +416,6 @@ const RightPanel = ({ isOpen, onClose, config, setConfig }) => {
                     <Settings size={24} />
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-8">
-                    
-                    {/* Instrument Selector */}
-                    <section>
-                         <div className="flex justify-between items-end mb-3">
-                            <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Instrument</h3>
-                         </div>
-                         <div className="grid grid-cols-3 gap-2">
-                            {Object.keys(INSTRUMENTS).map(key => (
-                                <button
-                                    key={key}
-                                    onClick={() => setInstrument(key)}
-                                    className={`py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center gap-1
-                                      ${config.instrument === key 
-                                        ? 'bg-white text-black border-white shadow-lg' 
-                                        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300'}
-                                    `}
-                                >
-                                    {key === 'piano' && <Piano size={16} />}
-                                    {key === 'guitar' && <Guitar size={16} />}
-                                    {key === 'ukulele' && <Guitar size={16} className="scale-75" />}
-                                    {INSTRUMENTS[key].name}
-                                </button>
-                            ))}
-                         </div>
-                    </section>
-
                     {/* Range */}
                     <section>
                          <div className="flex justify-between items-end mb-4">
@@ -559,6 +515,31 @@ const RightPanel = ({ isOpen, onClose, config, setConfig }) => {
                            })}
                         </div>
                     </section>
+                    
+                    {/* Instrument Selector */}
+                    <section>
+                         <div className="flex justify-between items-end mb-3">
+                            <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider">Instrument</h3>
+                         </div>
+                         <div className="grid grid-cols-3 gap-2">
+                            {Object.keys(INSTRUMENTS).map(key => (
+                                <button
+                                    key={key}
+                                    onClick={() => setInstrument(key)}
+                                    className={`py-2.5 rounded-xl border text-xs font-bold transition-all flex flex-col items-center gap-1
+                                      ${config.instrument === key 
+                                        ? 'bg-white text-black border-white shadow-lg' 
+                                        : 'bg-zinc-900 text-zinc-500 border-zinc-800 hover:text-zinc-300'}
+                                    `}
+                                >
+                                    {key === 'piano' && <PianoIcon size={16} />}
+                                    {key === 'guitar' && <GuitarIcon size={16} />}
+                                    {key === 'ukulele' && <GuitarIcon size={16} className="scale-75" />}
+                                    {INSTRUMENTS[key].name}
+                                </button>
+                            ))}
+                         </div>
+                    </section>
                 </div>
             </div>
         </>
@@ -583,50 +564,47 @@ const HomeScreen = ({ mistakes, slowResponses, history, startSession, setView, s
         <div className="flex-1 flex flex-col min-h-0 gap-4 pb-6 overflow-y-auto custom-scrollbar">
             
             {/* 1. Main Start Card (Top) - Horizontal Layout with Interactive Text */}
-            {/* 1. Main Start Card (Top) - Horizontal Layout with Interactive Text */}
-<div className="flex-[1.5] w-full bg-white rounded-[2.5rem] p-8 relative overflow-hidden group transition-all shrink-0 min-h-[240px] flex flex-row items-center justify-between shadow-xl">
-  {/* Background decoration */}
-  <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-zinc-100 to-transparent rounded-bl-full opacity-70 pointer-events-none"></div>
-  
-  {/* Left Side: Title & Subtitle - 不可点击 */}
-  <div className="flex flex-col justify-center items-start h-full z-10 space-y-4 w-full">
-    <div className="text-left">
-      {/* Animated EAR PRO Title with Magnetic Letters */}
-      <div className="text-5xl font-black tracking-tighter leading-[0.9] mb-2 flex flex-col items-start">
-        <div className="flex">
-          <MagneticLetter char="E" />
-          <MagneticLetter char="A" />
-          <MagneticLetter char="R" />
-        </div>
-        <div className="flex">
-          <MagneticLetter char="P" />
-          <MagneticLetter char="R" />
-          <MagneticLetter char="O" />
-        </div>
-      </div>
-      
-      {/* Animated Subtitle using InteractiveText */}
-      <div className="text-sm font-bold text-zinc-500 tracking-wide uppercase border-l-2 border-black pl-3 py-0.5">
-        <InteractiveText text="Professional" baseColor="text-zinc-500" />
-        <div className="h-0.5"></div>
-        <InteractiveText text="Ear Training" baseColor="text-zinc-500" />
-      </div>
-    </div>
-  </div>
+            <button 
+                onClick={() => startSession('NEW')}
+                className="flex-[1.5] w-full bg-white rounded-[2.5rem] p-8 relative overflow-hidden group transition-all active:scale-[0.98] shrink-0 min-h-[240px] flex flex-row items-center justify-between shadow-xl"
+            >
+                {/* Background decoration */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-zinc-100 to-transparent rounded-bl-full opacity-70 pointer-events-none"></div>
+                
+                {/* Left Side: Title & Subtitle */}
+                <div className="flex flex-col justify-center items-start h-full z-10 space-y-4 w-full">
+                     <div className="text-left">
+                        {/* Animated EAR PRO Title with Magnetic Letters */}
+                        <div className="text-5xl font-black tracking-tighter leading-[0.9] mb-2 flex flex-col items-start">
+                            <div className="flex">
+                                <MagneticLetter char="E" />
+                                <MagneticLetter char="A" />
+                                <MagneticLetter char="R" />
+                            </div>
+                            <div className="flex">
+                                <MagneticLetter char="P" />
+                                <MagneticLetter char="R" />
+                                <MagneticLetter char="O" />
+                            </div>
+                        </div>
+                        
+                        {/* Animated Subtitle using InteractiveText */}
+                        <div className="text-sm font-bold text-zinc-500 tracking-wide uppercase border-l-2 border-black pl-3 py-0.5">
+                            <InteractiveText text="Professional" baseColor="text-zinc-500" />
+                            <div className="h-0.5"></div>
+                            <InteractiveText text="Ear Training" baseColor="text-zinc-500" />
+                        </div>
+                    </div>
+                </div>
 
-  {/* Right Side: Big Play Button - 整个圆形区域可点击 */}
-  <button 
-    onClick={() => startSession('NEW')}
-    className="flex flex-col justify-center items-center z-10 h-full pl-4 focus:outline-none group/button rounded-2xl transition-all duration-300 hover:bg-zinc-50 active:bg-zinc-100 active:scale-95 p-2 -m-2"
-  >
-    {/* 黑色圆形按钮 */}
-    <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300 active:scale-95">
-      <Play className="text-white ml-1" size={40} fill="white" />
-    </div>
-    {/* "Start" 文字标签 - 现在也包含在按钮内，所以也可点击 */}
-    <span className="text-zinc-900 font-bold text-xs uppercase tracking-widest mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Start</span>
-  </button>
-</div>
+                {/* Right Side: Big Play Button */}
+                <div className="flex flex-col justify-center items-center z-10 h-full pl-4">
+                     <div className="w-24 h-24 bg-black rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                        <Play className="text-white ml-1" size={40} fill="white" />
+                    </div>
+                    <span className="text-zinc-900 font-bold text-xs uppercase tracking-widest mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">Start</span>
+                </div>
+            </button>
 
             {/* 2. Bottom Row: Mistakes & Slow - Side by Side */}
             <div className="flex-1 grid grid-cols-2 gap-4 min-h-[140px] shrink-0">
@@ -683,19 +661,6 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
             });
         }
     }, [q, config.rangeMin]);
-
-    // 监听 visibilitychange，从后台切回来时尝试恢复 AudioContext
-    useEffect(() => {
-        const handleVisibilityChange = () => {
-            if (!document.hidden && AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
-                AudioEngine.ctx.resume().then(() => {
-                    console.log('AudioContext resumed on visibility change');
-                }).catch(e => console.warn(e));
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, []);
 
     const playOptionSound = (interval) => {
        const notes = [q.root, q.root + interval.semitones];
@@ -907,6 +872,7 @@ const GameScreen = ({ queue, currentIndex, gameState, timerStart, responseTime, 
 
 // Main App
 export default function App() {
+  // ... (rest of the App component logic remains unchanged)
   const [view, setView] = useState('HOME'); 
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
@@ -955,6 +921,7 @@ export default function App() {
   const startSession = async (mode = 'NEW', customQueue = null) => {
     let newQueue = [];
     
+    // Init audio with selected instrument
     await AudioEngine.init();
     if (config.instrument && config.instrument !== 'piano') {
         await AudioEngine.loadSamples(config.instrument);
@@ -1162,7 +1129,4 @@ export default function App() {
        <RightPanel isOpen={isRightPanelOpen} onClose={() => setIsRightPanelOpen(false)} config={config} setConfig={setConfig} />
     </div>
   );
-
 }
-
-
