@@ -40,7 +40,7 @@ jobs:
           npm uninstall @capacitor/core
           npm install @capacitor/core@^7.0.0 --save
           npm install @capacitor/ios
-          npm install @capacitor/filesystem@^5.0.0 --save
+          npm install @capacitor/filesystem@^7.0.0 --save
           npm install capacitor-plugin-audio
 
       - name: Build Unsigned IPA
