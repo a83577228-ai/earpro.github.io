@@ -36,7 +36,7 @@ jobs:
             rm -rf @capacitor/ios^7.0.0 2>/dev/null || true
     
           # 2. 彻底清理旧依赖和缓存
-            npm uninstall @capacitor/core @capacitor/ios @capacitor/filesystem capacitor-plugin-audio
+            npm uninstall @capacitor/core @capacitor/ios @capacitor/filesystem capacitor-plugin-audio 2>/dev/null || true
             rm -rf node_modules package-lock.json
             npm cache clean --force
     
@@ -48,6 +48,12 @@ jobs:
     
           # 4. 初始化 iOS 平台并同步
             npx cap add ios
+            npx cap sync ios
+
+          # 5.安装官方音频播放器插件（替换不存在的 capacitor-plugin-audio）  
+            npm install @capacitor-community/audio-player --save
+
+          # 6.同步到 iOS 原生项目
             npx cap sync ios
 
       - name: Build Unsigned IPA
