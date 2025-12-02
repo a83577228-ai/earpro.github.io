@@ -37,9 +37,10 @@ jobs:
 
       - name: 安装 Capacitor 依赖
         run: |
-          npm install @capacitor/core @capacitor/cli
+          npm uninstall @capacitor/core
+          npm install @capacitor/core@^7.0.0 --save
           npm install @capacitor/ios
-          npm install @capacitor/filesystem
+          npm install @capacitor/filesystem@^5.0.0 --save
           npm install capacitor-plugin-audio
 
       - name: Build Unsigned IPA
