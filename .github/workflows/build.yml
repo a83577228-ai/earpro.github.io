@@ -23,58 +23,118 @@ jobs:
           npm install
           npm install lucide-react@latest
           
-      - name: Install Dependencies
-        run: npm install
-             npm install vite --save-dev
-
       - name: Build Web App
         run: npm run build
 
-      - name: 安装 Capacitor 依赖
+      - name: Install Capacitor Dependencies
         run: |
-          # 1. 先删除可能残留的错误依赖目录（避免干扰）
-            rm -rf @capacitor/ios^7.0.0 2>/dev/null || true
-    
-          # 2. 彻底清理旧依赖和缓存
-            npm uninstall @capacitor/core @capacitor/ios @capacitor/filesystem capacitor-plugin-audio 2>/dev/null || true
-            rm -rf node_modules package-lock.json
-            npm cache clean --force
-    
-          # 3. 用正确语法安装依赖（版本号紧跟包名，无多余符号）
-            npm install @capacitor/core@^7.0.0 --save
-            npm install @capacitor/ios@^7.0.0 --save
-            npm install @capacitor/filesystem@^7.0.0 --save
-           
-    
-          # 4. 初始化 iOS 平台并同步
-            npx cap add ios
-
-            sed -i '' 's/platform :ios, .*/platform :ios, '\''14.0'\''/' ios/App/Podfile
-            sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g' ios/App/App.xcodeproj/project.pbxproj
-    
+          # 清理并安装 Capacitor 核心依赖
+          npm install @capacitor/core @capacitor/cli --save
+          npm install @capacitor/ios --save-dev
+          
+          # 初始化 iOS 平台
+          npx cap add ios
+          
+          # 修改 Podfile 设置 iOS 版本
+          cd ios/App
+          
+          # 备份原始的 Podfile
+          cp Podfile Podfile.backup
+          
+          # 创建新的 Podfile 内容
+          cat > Podfile << 'EOF'
+          require_relative '../node_modules/@capacitor/ios/Capacitor/CapacitorPodspecs/CapacitorPodspecs.rb'
+          
+          platform :ios, '14.0'
+          
+          target 'App' do
+            # Add your Pods here
+            pod 'Capacitor', :path => '../node_modules/@capacitor/ios'
+            pod 'CapacitorCordova', :path => '../node_modules/@capacitor/ios'
+            
+            # App target pods
+            install! 'cocoapods', :disable_input_output_paths => true
+          end
+          EOF
+          
           # 安装 Pod 依赖
-            cd ios/App
-            pod repo update
-            pod install --verbose
-            cd ../../
-            npx cap sync ios
-
-          # 5.安装官方音频播放器插件（替换不存在的 capacitor-plugin-audio）  
-            npm install @capacitor-community/audio-player --save
-
-          # 6.同步到 iOS 原生项目
-            npx cap sync ios
+          pod install --verbose
+          cd ../../
+          
+          # 同步到 iOS 项目
+          npx cap sync ios
 
       - name: Build Unsigned IPA
-        # 使用 xcodebuild 生成未签名的归档，因为 AltStore 会在安装时重新签名
         run: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -archivePath App.xcarchive archive CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           
-          # 将 .app 包装成 .ipa 结构
-          mkdir Payload
-          cp -r App.xcarchive/Products/Applications/App.app Payload/
-          zip -r EarPro.ipa Payload
+          # 创建 Xcode 项目文件（如果不存在）
+          if [ ! -f "App.xcworkspace/contents.xcworkspacedata" ]; then
+            xcodebuild -project App.xcodeproj -list
+          fi
+          
+          # 清理构建目录
+          rm -rf build
+          
+          # 归档项目
+          xcodebuild archive \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -archivePath App.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            -allowProvisioningUpdates
+          
+          # 导出为 IPA
+          xcodebuild -exportArchive \
+            -archivePath App.xcarchive \
+            -exportOptionsPlist ../../exportOptions.plist \
+            -exportPath .
+            
+          # 如果导出成功，重命名 IPA 文件
+          if [ -f "App.ipa" ]; then
+            mv App.ipa EarPro.ipa
+          else
+            # 如果导出失败，使用手动方法创建 IPA
+            mkdir -p Payload
+            cp -r App.xcarchive/Products/Applications/App.app Payload/
+            zip -r EarPro.ipa Payload
+            rm -rf Payload
+          fi
+
+      - name: Create export options plist
+        run: |
+          cat > exportOptions.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>development</string>
+            <key>teamID</key>
+            <string></string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <false/>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string></string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.earpro.training</key>
+              <string></string>
+            </dict>
+            <key>thinning</key>
+            <string>&lt;none&gt;</string>
+          </dict>
+          </plist>
+          EOF
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
