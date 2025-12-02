@@ -48,6 +48,15 @@ jobs:
     
           # 4. 初始化 iOS 平台并同步
             npx cap add ios
+
+            sed -i '' 's/platform :ios, .*/platform :ios, '\''14.0'\''/' ios/App/Podfile
+            sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g' ios/App/App.xcodeproj/project.pbxproj
+    
+          # 安装 Pod 依赖
+            cd ios/App
+            pod repo update
+            pod install --verbose
+            cd ../../
             npx cap sync ios
 
           # 5.安装官方音频播放器插件（替换不存在的 capacitor-plugin-audio）  
