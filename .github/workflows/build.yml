@@ -37,8 +37,9 @@ jobs:
 
       - name: 安装 Capacitor 依赖
         run: |
-          npm uninstall @capacitor/core
+          npm uninstall @capacitor/ios
           npm install @capacitor/core@^7.0.0 --save
+          npx cap sync ios
           npm install @capacitor/ios
           npm install @capacitor/filesystem@^7.0.0 --save
           npm install capacitor-plugin-audio
