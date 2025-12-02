@@ -32,13 +32,23 @@ jobs:
 
       - name: 安装 Capacitor 依赖
         run: |
-          npm uninstall @capacitor/core @capacitor/ios @capacitor/filesystem
-          npm install @capacitor/core@^7.0.0 --save
-          npm install @capacitor/ios^7.0.0 --save
-          npm install @capacitor/filesystem@^7.0.0 --save
-          npm install capacitor-plugin-audio
-          npx cap add ios
-          npx cap sync ios
+          # 1. 先删除可能残留的错误依赖目录（避免干扰）
+            rm -rf @capacitor/ios^7.0.0 2>/dev/null || true
+    
+          # 2. 彻底清理旧依赖和缓存
+            npm uninstall @capacitor/core @capacitor/ios @capacitor/filesystem capacitor-plugin-audio
+            rm -rf node_modules package-lock.json
+            npm cache clean --force
+    
+          # 3. 用正确语法安装依赖（版本号紧跟包名，无多余符号）
+            npm install @capacitor/core@^7.0.0 --save
+            npm install @capacitor/ios@^7.0.0 --save
+            npm install @capacitor/filesystem@^7.0.0 --save
+            npm install capacitor-plugin-audio --save
+    
+          # 4. 初始化 iOS 平台并同步
+            npx cap add ios
+            npx cap sync ios
 
       - name: Build Unsigned IPA
         # 使用 xcodebuild 生成未签名的归档，因为 AltStore 会在安装时重新签名
