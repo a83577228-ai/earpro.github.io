@@ -35,6 +35,13 @@ jobs:
           npx cap add ios
           npx cap sync ios
 
+      - name: 安装 Capacitor 依赖
+        run: |
+          npm install @capacitor/core @capacitor/cli
+          npm install @capacitor/ios
+          npm install @capacitor/filesystem
+          npm install capacitor-plugin-audio
+
       - name: Build Unsigned IPA
         # 使用 xcodebuild 生成未签名的归档，因为 AltStore 会在安装时重新签名
         run: |
