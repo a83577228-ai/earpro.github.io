@@ -30,19 +30,15 @@ jobs:
       - name: Build Web App
         run: npm run build
 
-      - name: Setup Capacitor
-        run: |
-          npx cap add ios
-          npx cap sync ios
-
       - name: 安装 Capacitor 依赖
         run: |
-          npm uninstall @capacitor/ios
+          npm uninstall @capacitor/core @capacitor/ios @capacitor/filesystem
           npm install @capacitor/core@^7.0.0 --save
-          npx cap sync ios
-          npm install @capacitor/ios
+          npm install @capacitor/ios^7.0.0 --save
           npm install @capacitor/filesystem@^7.0.0 --save
           npm install capacitor-plugin-audio
+          npx cap add ios
+          npx cap sync ios
 
       - name: Build Unsigned IPA
         # 使用 xcodebuild 生成未签名的归档，因为 AltStore 会在安装时重新签名
