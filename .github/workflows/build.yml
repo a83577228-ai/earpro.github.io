@@ -44,7 +44,7 @@ jobs:
             npm install @capacitor/core@^7.0.0 --save
             npm install @capacitor/ios@^7.0.0 --save
             npm install @capacitor/filesystem@^7.0.0 --save
-            npm install capacitor-plugin-audio --save
+           
     
           # 4. 初始化 iOS 平台并同步
             npx cap add ios
