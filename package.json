@@ -8,10 +8,11 @@
     "dev": "vite",
     "build": "vite build && cap sync",
     "preview": "vite preview",
-    "cap:sync": "cap sync",
+    "cap:sync": "npc cap sync",
     "cap:build": "vite build && cap sync"
   },
   "dependencies": {
+    "@capacitor/cli": "^7.0.0",
     "lucide-react": "^0.555.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
@@ -27,4 +28,5 @@
     "vite-plugin-pwa": "^0.17.0"
   }
 }
+
 
