@@ -64,14 +64,26 @@ const AudioEngine = {
   loadingPromise: null,
   currentInstrument: 'piano',
   
-  sampleMap: {
-    24: 'https://public/audio/acoustic_grand_piano-mp3/C1.mp3',
-    36: 'https://public/audio/acoustic_grand_piano-mp3/C2.mp3',
-    48: 'https://public/audio/acoustic_grand_piano-mp3/C3.mp3',
-    60: 'https://public/audio/acoustic_grand_piano-mp3/C4.mp3',
-    72: 'https://public/audio/acoustic_grand_piano-mp3/C5.mp3',
-    84: 'https://public/audio/acoustic_grand_piano-mp3/C6.mp3',
-    96: 'https://public/audio/acoustic_grand_piano-mp3/C7.mp3',
+  // 本地音频文件映射
+  localSampleMap: {
+    piano: {
+      24: '/audio/acoustic_grand_piano-mp3/C1.mp3',
+      36: '/audio/acoustic_grand_piano-mp3/C2.mp3',
+      48: '/audio/acoustic_grand_piano-mp3/C3.mp3',
+      60: '/audio/acoustic_grand_piano-mp3/C4.mp3',
+      72: '/audio/acoustic_grand_piano-mp3/C5.mp3',
+      84: '/audio/acoustic_grand_piano-mp3/C6.mp3',
+      96: '/audio/acoustic_grand_piano-mp3/C7.mp3',
+    },
+    guitar: {
+      48: '/audio/acoustic_guitar_nylon-mp3/C3.mp3',
+      60: '/audio/acoustic_guitar_nylon-mp3/C4.mp3',
+      72: '/audio/acoustic_guitar_nylon-mp3/C5.mp3',
+    },
+    ukulele: {
+      60: '/audio/acoustic_guitar_steel-mp3/C4.mp3',
+      72: '/audio/acoustic_guitar_steel-mp3/C5.mp3',
+    }
   },
 
   midiToNoteName(midi) {
@@ -99,36 +111,51 @@ const AudioEngine = {
 
   async loadSamples(instrumentId = 'piano') {
     this.currentInstrument = instrumentId;
-    const baseMidis = [36, 48, 60, 72, 84]; 
-    const soundFontId = INSTRUMENTS[instrumentId].id;
+    
+    // 使用本地音频映射
+    const samples = this.localSampleMap[instrumentId];
+    if (!samples) {
+      console.error(`No samples found for instrument: ${instrumentId}`);
+      return;
+    }
 
-    console.log(`Loading samples for ${instrumentId}...`);
+    console.log(`Loading local samples for ${instrumentId}...`);
 
     if (!this.buffers[instrumentId]) {
         this.buffers[instrumentId] = {};
     }
 
-    const promises = baseMidis.map(async (midi) => {
+    const promises = Object.keys(samples).map(async (midiStr) => {
+      const midi = parseInt(midiStr);
       if (this.buffers[instrumentId][midi]) return;
 
-      const noteName = this.midiToNoteName(midi);
-      const url = `https:public/audio/${soundFontId}-mp3/${noteName}.mp3`;
+      const url = samples[midi];
+      console.log(`Loading: ${url}`);
 
       try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Network response was not ok');
+        if (!response.ok) {
+          console.warn(`Failed to load ${url}: ${response.status} ${response.statusText}`);
+          return;
+        }
+        
         const arrayBuffer = await response.arrayBuffer();
         if (this.ctx) {
-            const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
-            this.buffers[instrumentId][midi] = audioBuffer;
+          const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+          this.buffers[instrumentId][midi] = audioBuffer;
+          console.log(`Loaded ${instrumentId} sample for MIDI ${midi}`);
         }
       } catch (e) {
-        console.warn(`Failed to load sample for ${midi} (${instrumentId})`, e);
+        console.warn(`Failed to load sample for ${midi} (${instrumentId}):`, e);
+        // 如果本地文件加载失败，可以尝试使用在线备用文件
+        // const backupUrl = `https://raw.githubusercontent.com/fuhton/piano-mp3/master/piano-mp3/C${Math.floor(midi/12)}.mp3`;
+        // console.log(`Trying backup URL: ${backupUrl}`);
       }
     });
 
     await Promise.all(promises);
     this.loaded = true;
+    console.log(`${instrumentId} samples loaded successfully`);
   },
 
   getBestSample(midi, instrumentId) {
@@ -190,6 +217,7 @@ const AudioEngine = {
   },
   
   playNotes(notes, mode, direction) { 
+    // iOS 音频上下文解锁
     if (this.ctx && this.ctx.state === 'suspended') {
        this.ctx.resume();
     }
@@ -241,6 +269,30 @@ const TimerDisplay = ({ startTime, stoppedTime, isCorrect }) => {
    const reqRef = useRef();
 
    useEffect(() => {
+// 在 App 组件的 useEffect 中添加
+useEffect(() => {
+      // 在 App 组件的 useEffect 中添加
+useEffect(() => {
+  // iOS 音频上下文解锁
+  const unlockAudio = () => {
+    if (AudioEngine.ctx && AudioEngine.ctx.state === 'suspended') {
+      AudioEngine.ctx.resume();
+      console.log('Audio context resumed');
+    }
+  };
+  
+  // 添加触摸事件监听器
+  document.addEventListener('touchstart', unlockAudio);
+  document.addEventListener('touchend', unlockAudio);
+  
+  // 初始化音频引擎
+  AudioEngine.init();
+  
+  return () => {
+    document.removeEventListener('touchstart', unlockAudio);
+    document.removeEventListener('touchend', unlockAudio);
+  };
+}, []);
       if (stoppedTime !== null && stoppedTime !== undefined) {
           setTime(stoppedTime);
           return;
@@ -1130,4 +1182,3 @@ export default function App() {
     </div>
   );
 }
-
