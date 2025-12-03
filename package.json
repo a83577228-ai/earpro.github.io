@@ -6,19 +6,24 @@
   "homepage": ".",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && cap sync",
+    "build": "vite build",
     "preview": "vite preview",
-    "cap:sync": "npc cap sync",
-    "cap:build": "vite build && cap sync"
+    "cap:sync": "vite build && cap sync",
+    "cap:ios": "vite build && cap sync ios && cap open ios",
+    "build:ios": "vite build && cap sync ios",
+    "package:ios": "vite build && cap sync ios && cd ios/App && xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -archivePath App.xcworkspace/Products/Applications/App archive"
   },
   "dependencies": {
-    "@capacitor/cli": "^5.5.1",
+    "@capacitor/core": "^5.5.1",
+    "@capacitor/ios": "^5.5.1",
+    "@capacitor/splash-screen": "^5.0.6",
     "lucide-react": "^0.555.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-   "@types/react": "^18.2.37",
+    "@capacitor/cli": "^5.5.1",
+    "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.22",
@@ -28,6 +33,3 @@
     "vite-plugin-pwa": "^0.17.0"
   }
 }
-
-
-
