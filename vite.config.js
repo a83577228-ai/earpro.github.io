@@ -1,12 +1,23 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // 关键：相对路径，防止手机上白屏
   build: {
-    outDir: 'dist', // 产物输出到 dist 文件夹
-    emptyOutDir: true
-  }
-})
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js'
+      }
+    }
+  },
+  server: {
+    port: 3000,
+    host: true
+  },
+  // 确保静态资源正确引用
+  base: './'
+});
