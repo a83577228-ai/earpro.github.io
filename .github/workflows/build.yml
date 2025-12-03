@@ -18,126 +18,99 @@ jobs:
         with:
           node-version: '18'
           
-      - name: Install project dependencies
+      - name: Install Dependencies
         run: |
-          npm install
-          npm install lucide-react@latest
-          
+          npm ci
+          npm install -g @capacitor/cli
+
       - name: Build Web App
         run: npm run build
 
-      - name: Install Capacitor Dependencies
+      - name: Setup Capacitor iOS
         run: |
-          # 清理并安装 Capacitor 核心依赖
-          npm install @capacitor/core @capacitor/cli --save
-          npm install @capacitor/ios --save-dev
-          
-          # 初始化 iOS 平台
           npx cap add ios
-          
-          # 修改 Podfile 设置 iOS 版本
-          cd ios/App
-          
-          # 备份原始的 Podfile
-          cp Podfile Podfile.backup
-          
-          # 创建新的 Podfile 内容
-          cat > Podfile << 'EOF'
-          require_relative '../node_modules/@capacitor/ios/Capacitor/CapacitorPodspecs/CapacitorPodspecs.rb'
-          
-          platform :ios, '14.0'
-          
-          target 'App' do
-            # Add your Pods here
-            pod 'Capacitor', :path => '../node_modules/@capacitor/ios'
-            pod 'CapacitorCordova', :path => '../node_modules/@capacitor/ios'
-            
-            # App target pods
-            install! 'cocoapods', :disable_input_output_paths => true
-          end
-          EOF
-          
-          # 安装 Pod 依赖
-          pod install --verbose
-          cd ../../
-          
-          # 同步到 iOS 项目
           npx cap sync ios
 
-      - name: Build Unsigned IPA
+      - name: Configure iOS Project for Audio
         run: |
           cd ios/App
           
-          # 创建 Xcode 项目文件（如果不存在）
-          if [ ! -f "App.xcworkspace/contents.xcworkspacedata" ]; then
-            xcodebuild -project App.xcodeproj -list
+          # 创建音频目录
+          mkdir -p App/public/audio
+          
+          # 复制示例音频文件（这里可以替换为你的本地音频）
+          # 注意：GitHub Actions 中需要提前准备音频文件
+          # 你可以将音频文件放在项目的 audio/ 目录下
+          if [ -d "../../audio" ]; then
+            cp -r ../../audio/* App/public/audio/
           fi
           
-          # 清理构建目录
-          rm -rf build
+          # 修改 Info.plist 配置音频权限
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity dict" App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" App/Info.plist
           
-          # 归档项目
-          xcodebuild archive \
-            -workspace App.xcworkspace \
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" App/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" App/Info.plist
+          
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 用于播放音程训练声音" App/Info.plist
+          
+          # 设置 Bundle 信息
+          /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier com.earpro.training" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName EarPro" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :MinimumOSVersion 13.0" App/Info.plist
+
+      - name: Build iOS Project
+        run: |
+          cd ios/App
+          
+          # 清理项目
+          xcodebuild clean -workspace App.xcworkspace -scheme App
+          
+          # 构建项目
+          xcodebuild -workspace App.xcworkspace \
             -scheme App \
             -configuration Release \
-            -archivePath App.xcarchive \
+            -archivePath ./App.xcarchive \
+            archive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            -allowProvisioningUpdates
-          
-          # 导出为 IPA
-          xcodebuild -exportArchive \
-            -archivePath App.xcarchive \
-            -exportOptionsPlist ../../exportOptions.plist \
-            -exportPath .
-            
-          # 如果导出成功，重命名 IPA 文件
-          if [ -f "App.ipa" ]; then
-            mv App.ipa EarPro.ipa
-          else
-            # 如果导出失败，使用手动方法创建 IPA
-            mkdir -p Payload
-            cp -r App.xcarchive/Products/Applications/App.app Payload/
-            zip -r EarPro.ipa Payload
-            rm -rf Payload
-          fi
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Create export options plist
+      - name: Create IPA Package
         run: |
-          cat > exportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key>
-            <string>development</string>
-            <key>teamID</key>
-            <string></string>
-            <key>compileBitcode</key>
-            <false/>
-            <key>uploadBitcode</key>
-            <false/>
-            <key>uploadSymbols</key>
-            <false/>
-            <key>signingStyle</key>
-            <string>manual</string>
-            <key>signingCertificate</key>
-            <string></string>
-            <key>provisioningProfiles</key>
-            <dict>
-              <key>com.earpro.training</key>
-              <string></string>
-            </dict>
-            <key>thinning</key>
-            <string>&lt;none&gt;</string>
-          </dict>
-          </plist>
-          EOF
+          cd ios/App
+          
+          # 创建 Payload 目录并复制应用
+          mkdir -p Payload
+          cp -r App.xcarchive/Products/Applications/App.app Payload/
+          
+          # 清理符号文件减少体积
+          find Payload -name "*.dSYM" -type d -exec rm -rf {} + || true
+          
+          # 压缩成 IPA
+          zip -r EarPro.ipa Payload
+          
+          # 清理临时文件
+          rm -rf Payload App.xcarchive
 
-      - name: Upload IPA
+      - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: EarPro-IPA
+          name: EarPro-iOS-IPA
           path: ios/App/EarPro.ipa
+
+      - name: Create App Info File
+        run: |
+          echo "App Name: EarPro" > app-info.txt
+          echo "Bundle ID: com.earpro.training" >> app-info.txt
+          echo "Build Date: $(date)" >> app-info.txt
+          echo "For AltStore installation:" >> app-info.txt
+          echo "1. Download the IPA from Artifacts" >> app-info.txt
+          echo "2. Open with AltServer" >> app-info.txt
+          echo "3. Trust developer in Settings > General > Device Management" >> app-info.txt
+
+      - name: Upload App Info
+        uses: actions/upload-artifact@v4
+        with:
+          name: App-Info
+          path: app-info.txt
